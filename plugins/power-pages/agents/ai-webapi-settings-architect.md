@@ -83,7 +83,7 @@ in the plan as "broader than needed — consider narrowing to read-only after th
 |---------|-------|---------|--------------------|
 | `Summarization/Data/Enable` | `true` | Master toggle for the `/_api/summarization/data/v1.0/` endpoint | Whenever the site code references the data summarization API |
 | `Summarization/prompt/<identifier>` | maker-defined prompt text | Referenced via `InstructionIdentifier` in the request body | One per `InstructionIdentifier` value found in code |
-| `Summarization/Data/ContentSizeLimit` | integer (default `100000`) | Overrides the 100k character input cap | Single-record targets: only if the site's data regularly exceeds 100k characters. **List-summary targets: default to `200000`** (enough headroom for ~500 rows of narrow records). Raise further only when a specific target hits error `90041004` consistently with realistic data volumes. |
+| `Summarization/Data/ContentSizeLimit` | integer (default `100000`) | Overrides the 100k character input cap | **List-summary targets: ALWAYS set to `200000` — non-negotiable.** The 100k server default truncates ~500 rows of narrow records before they reach the model and silently produces summaries based on partial data. Only raise above `200000` when a specific target hits error `90041004` consistently with realistic data volumes. Single-record targets: include only if the site's data regularly exceeds 100k characters. |
 
 The Search Summary API (`/_api/search/v1.0/summary`) does **not** require a per-setting toggle —
 its enablement lives in the site's Copilot workspace (see the Microsoft Learn reference). If the site
@@ -355,12 +355,20 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/create-site-setting.js" --projectRoot "<PROJ
 node "${CLAUDE_PLUGIN_ROOT}/scripts/create-site-setting.js" --projectRoot "<PROJECT_ROOT>" --name "Summarization/Data/ContentSizeLimit" --value "<integer>" --description "Override the default 100000-character summarization input cap"
 ```
 
-Propose this whenever:
+Include this setting in the plan whenever:
 
-- The plan includes a **list-summary** target — in that case propose `--value "200000"` by
-  default so ~500 rows of narrow records fit without `90041004`. Don't wait for the user to hit
-  the error.
+- The plan includes **any list-summary target** — in that case `--value "200000"` is required,
+  not optional. The site's existing settings folder must contain a
+  `Summarization-Data-ContentSizeLimit.sitesetting.yml` with `value: 200000` (or higher) by the
+  end of the architect run; otherwise the list-summary call will silently truncate to 100k chars
+  and ship summaries based on partial data. Don't wait for the user to hit error `90041004` —
+  that error fires on overflow but the truncation is silent on under-overflow.
 - A single-record target whose selected content regularly exceeds 100k characters.
+
+**Plan-mode display rule.** When listing site settings to the user, surface the
+`ContentSizeLimit=200000` row with a "Required for list summaries" badge so the user can't
+accidentally skip approving it. If they explicitly decline ("I'd rather start at 100k"), warn
+that list summaries will silently truncate, and only proceed if they re-confirm.
 
 `create-site-setting.js` only supports `--type boolean` and `--type string`. For
 `Summarization/Data/ContentSizeLimit` (integer), pass the value as a string without `--type`

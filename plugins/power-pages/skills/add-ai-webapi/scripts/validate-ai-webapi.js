@@ -25,6 +25,11 @@
 //     /page-not-found/?id=<guid> citation URLs that need rewriting to the SPA's KB route.
 //     Warn when search-summary code is present but no file references
 //     extractKnowledgeArticleId (or an equivalent inline rewrite).
+//   - List-summary ContentSizeLimit — when fetchListSummary appears in source, the
+//     Summarization/Data/ContentSizeLimit site setting must be present at >= 200000.
+//     The 100k server default silently truncates list content; truncation is invisible
+//     (no error code), so summaries ship based on partial data. Warn when the YAML is
+//     missing or its value is below 200000.
 
 const fs = require('fs');
 const path = require('path');
@@ -109,6 +114,48 @@ runValidation((cwd) => {
       warnings.push(
         "Search Summary is integrated but no source file references extractKnowledgeArticleId or reads the citation URL's ?id parameter — citation links will land on the built-in /page-not-found page on SPA sites."
       );
+    }
+  }
+
+  // List-summary check: when fetchListSummary is referenced, ContentSizeLimit must be >= 200000.
+  // The collection endpoint silently truncates input content at the server-side cap; the 100k
+  // default produces summaries based on partial data with no error to catch.
+  const projectHasListSummary = sourceFiles.some((f) => {
+    try {
+      return fs.readFileSync(f, 'utf8').includes('fetchListSummary');
+    } catch {
+      return false;
+    }
+  });
+  if (projectHasListSummary) {
+    const settingPath = path.join(
+      projectRoot,
+      '.powerpages-site',
+      'site-settings',
+      'Summarization-Data-ContentSizeLimit.sitesetting.yml'
+    );
+    let yaml = null;
+    try {
+      yaml = fs.readFileSync(settingPath, 'utf8');
+    } catch {
+      yaml = null;
+    }
+    if (yaml === null) {
+      warnings.push(
+        'List summary (fetchListSummary) is integrated but Summarization-Data-ContentSizeLimit.sitesetting.yml is missing — the 100k server default will silently truncate list content. Set Summarization/Data/ContentSizeLimit = 200000.'
+      );
+    } else {
+      const valueMatch = yaml.match(/^\s*value\s*:\s*['"]?(\d+)['"]?\s*$/m);
+      const numericValue = valueMatch ? parseInt(valueMatch[1], 10) : null;
+      if (numericValue === null) {
+        warnings.push(
+          'Summarization-Data-ContentSizeLimit.sitesetting.yml exists but its `value` field is not a parseable integer — list-summary truncation cannot be verified. Set value: 200000.'
+        );
+      } else if (numericValue < 200000) {
+        warnings.push(
+          `Summarization/Data/ContentSizeLimit is ${numericValue}; list summaries should use at least 200000 to avoid silent truncation of ~500-row payloads.`
+        );
+      }
     }
   }
 

@@ -25,7 +25,11 @@ model: opus
 >
 > This is a preview feature. Preview features aren't meant for production use and may have restricted functionality. These features are available before an official release so that customers can get early access and provide feedback.
 
-Surface the note above to the user during Phase 1 and again in the Phase 8 summary so they don't take a runtime dependency on these APIs for production-critical paths.
+**Surface this note to the user verbatim** during Phase 1 and again in the Phase 8 summary —
+copy the exact `**Note**` block above (including its wording about "available before an official
+release so that customers can get early access and provide feedback"). Do not paraphrase it into
+your own "Preview-feature note: ..." sentence; the wording matches the Microsoft Learn preview
+disclaimer and rephrasing it loses that fidelity.
 
 Integrate Power Pages generative-AI summarization APIs into a SPA site. This skill focuses on the AI layer (Layer 3): the summarization service code and the `Summarization/*` site settings. The underlying Web API prerequisites — `Webapi/<table>/enabled`, `Webapi/<table>/fields`, table permissions, and web roles — are **delegated** to `/integrate-webapi` and `/create-webroles` so there is a single source of truth for every layer.
 
@@ -731,8 +735,11 @@ Invoke the agent at `${CLAUDE_PLUGIN_ROOT}/agents/ai-webapi-settings-architect.m
 
 > "Analyse this Power Pages SPA site and propose generative-AI summarization site settings.
 > The following Data Summarization targets were integrated in Phase 5: [list each target with its
-> entity set + per-target `InstructionIdentifier` value]. Check for existing `Summarization/*`
-> settings. Layer 1
+> entity set, per-target `InstructionIdentifier` value, and **target kind** (`single-record` or
+> `list`) — the architect needs this to decide on `Summarization/Data/ContentSizeLimit`].
+> **If any target is `list`, the plan MUST include `Summarization/Data/ContentSizeLimit=200000`** —
+> the 100k server default silently truncates list content; this is non-negotiable.
+> Check for existing `Summarization/*` settings. Layer 1
 > (`Webapi/<table>/*`) and Layer 2 (table permissions) were configured in Phase 4 via
 > `/integrate-webapi` in AI-only read mode — verify they are present on disk and cite them as
 > met in your plan's prerequisite table. Propose the AI plan via plan mode, and on approval
@@ -794,6 +801,12 @@ For each confirmed target, confirm:
   `src/composables/`, or Angular service in `src/app/services/`.
 - **UI wiring**: at least one page/component imports the service or wrapper and calls it.
 - **Shared API client** `src/shared/powerPagesApi.ts` exists when any Data Summarization target was in scope.
+- **`Summarization/Data/ContentSizeLimit` site setting** when any list-summary target was
+  integrated. Grep the source for `fetchListSummary` — if any match exists, confirm
+  `.powerpages-site/site-settings/Summarization-Data-ContentSizeLimit.sitesetting.yml` is
+  present with `value: 200000` (or higher). Missing this setting silently caps list summaries at
+  the 100k server default and ships the user truncated input. If it's missing, surface the gap
+  to the user before completing Phase 7 — re-run the architect or create the YAML manually.
 
 ### 7.2 Header contract grep
 
@@ -990,9 +1003,11 @@ every rule below:
    (`EntityDefinitions(LogicalName='<primary>')/ManyToOneRelationships` →
    `ReferencedEntityNavigationPropertyName`). The nav prop is PascalCase; the lookup column is
    lowercase. Mismatched casing returns 400.
-10. **Set `Summarization/Data/ContentSizeLimit = 200000`** by default for list-summary targets —
-    enough headroom for ~500 rows of narrow records. Bump only when real data hits error
-    `90041004`.
+10. **Always ship `Summarization/Data/ContentSizeLimit = 200000` for list-summary targets** —
+    this is required, not optional. The 100k server default silently truncates list content
+    *before* it reaches the model, so summaries ship based on partial data with no error to
+    catch. `90041004` only fires on overflow; under-overflow truncation is invisible. Bump above
+    `200000` only when real data hits `90041004` consistently.
 
 ### Progress tracking
 

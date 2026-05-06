@@ -241,3 +241,72 @@ test('Data-only project does not trigger Search Summary warnings', (t) => {
   assert.doesNotMatch(result.stderr, /parseSummaryWithCitations/);
   assert.doesNotMatch(result.stderr, /extractKnowledgeArticleId/);
 });
+
+const VALID_LIST_SERVICE = `
+export async function fetchListSummary(entitySet, options) {
+  const token = await getCsrfToken();
+  const url = '/_api/summarization/data/v1.0/' + entitySet + '?$select=' + options.select;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8',
+      '__RequestVerificationToken': token,
+      'X-Requested-With': 'XMLHttpRequest',
+      'OData-MaxVersion': '4.0',
+      'OData-Version': '4.0',
+    },
+    body: JSON.stringify({ InstructionIdentifier: options.instructionIdentifier }),
+  });
+  return response.json();
+}
+`;
+
+test('list summary without ContentSizeLimit setting warns', (t) => {
+  const projectRoot = createTempProject(t);
+  writeProjectFile(projectRoot, 'powerpages.config.json', '{}');
+  writeProjectFile(projectRoot, 'src/services/aiSummaryService.ts', VALID_LIST_SERVICE);
+
+  const result = runValidator(projectRoot);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stderr, /Summarization-Data-ContentSizeLimit\.sitesetting\.yml is missing/);
+});
+
+test('list summary with ContentSizeLimit below 200000 warns', (t) => {
+  const projectRoot = createTempProject(t);
+  writeProjectFile(projectRoot, 'powerpages.config.json', '{}');
+  writeProjectFile(projectRoot, 'src/services/aiSummaryService.ts', VALID_LIST_SERVICE);
+  writeProjectFile(
+    projectRoot,
+    '.powerpages-site/site-settings/Summarization-Data-ContentSizeLimit.sitesetting.yml',
+    "id: 11111111-1111-4111-8111-111111111111\nname: Summarization/Data/ContentSizeLimit\nvalue: '150000'\n"
+  );
+
+  const result = runValidator(projectRoot);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stderr, /ContentSizeLimit is 150000.*at least 200000/);
+});
+
+test('list summary with ContentSizeLimit at 200000 does not warn', (t) => {
+  const projectRoot = createTempProject(t);
+  writeProjectFile(projectRoot, 'powerpages.config.json', '{}');
+  writeProjectFile(projectRoot, 'src/services/aiSummaryService.ts', VALID_LIST_SERVICE);
+  writeProjectFile(
+    projectRoot,
+    '.powerpages-site/site-settings/Summarization-Data-ContentSizeLimit.sitesetting.yml',
+    "id: 11111111-1111-4111-8111-111111111111\nname: Summarization/Data/ContentSizeLimit\nvalue: '200000'\n"
+  );
+
+  const result = runValidator(projectRoot);
+  assert.equal(result.status, 0, result.stderr);
+  assert.doesNotMatch(result.stderr, /ContentSizeLimit/);
+});
+
+test('single-record-only project does not check ContentSizeLimit', (t) => {
+  const projectRoot = createTempProject(t);
+  writeProjectFile(projectRoot, 'powerpages.config.json', '{}');
+  writeProjectFile(projectRoot, 'src/services/aiSummaryService.ts', VALID_DATA_SERVICE);
+
+  const result = runValidator(projectRoot);
+  assert.equal(result.status, 0, result.stderr);
+  assert.doesNotMatch(result.stderr, /ContentSizeLimit/);
+});
