@@ -21,7 +21,7 @@
 //   - Search Summary citation parsing — the API embeds [[N]](url) markdown tokens inline
 //     in Summary. Rendering Summary directly shows raw markdown. Warn when no source file
 //     references parseSummaryWithCitations or contains a [[N]](url) parsing pattern.
-//   - Search Summary KB-id rewrite — on code sites the API returns
+//   - Search Summary KB-id rewrite — on Single Page Application (SPA) sites the API returns
 //     /page-not-found/?id=<guid> citation URLs that need rewriting to the SPA's KB route.
 //     Warn when search-summary code is present but no file references
 //     extractKnowledgeArticleId (or an equivalent inline rewrite).
@@ -102,12 +102,12 @@ runValidation((cwd) => {
       );
     }
 
-    // KB-id rewrite for code sites: either by helper name or by inline reading of ?id=<guid>.
+    // KB-id rewrite for SPA sites: either by helper name or by inline reading of ?id=<guid>.
     const usesRewriteHelper = allContent.includes('extractKnowledgeArticleId');
     const handlesRewriteInline = /searchParams\.get\(\s*['"]id['"]\s*\)/.test(allContent);
     if (!usesRewriteHelper && !handlesRewriteInline) {
       warnings.push(
-        "Search Summary is integrated but no source file references extractKnowledgeArticleId or reads the citation URL's ?id parameter — citation links will land on the built-in /page-not-found page on code sites."
+        "Search Summary is integrated but no source file references extractKnowledgeArticleId or reads the citation URL's ?id parameter — citation links will land on the built-in /page-not-found page on SPA sites."
       );
     }
   }

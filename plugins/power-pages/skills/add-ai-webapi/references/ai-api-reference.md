@@ -59,12 +59,12 @@ Summarises search results using generative AI for a user query. Requires that **
 
 > **At-a-glance gotchas (full detail below):**
 > - **Content-Type:** `application/x-www-form-urlencoded` — *not* `application/json`. JSON returns 400.
-> - **Indexed content:** the API grounds on the site's knowledge-article index. A code site with no
->   `knowledgearticle` data (or with the search index not yet built) returns empty
->   `Summary` / `Citations`. Verify your site has knowledge articles populated and indexed before
->   debugging the API itself.
-> - **Citation URLs on code sites:** returned as `/page-not-found/?id=<guid>`. Rewrite to your SPA's
->   KB route (default `/knowledge/:id`) — see the "Citation URLs on code sites" subsection.
+> - **Indexed content:** the API grounds on the site's knowledge-article index. A Single Page
+>   Application (SPA) site with no `knowledgearticle` data (or with the search index not yet
+>   built) returns empty `Summary` / `Citations`. Verify your site has knowledge articles
+>   populated and indexed before debugging the API itself.
+> - **Citation URLs on SPA sites:** returned as `/page-not-found/?id=<guid>`. Rewrite to your SPA's
+>   KB route (default `/knowledge/:id`) — see the "Citation URLs on SPA sites" subsection.
 
 **Request body (wire format):**
 
@@ -126,7 +126,7 @@ userQuery=Fix+problems+with+slow+coffee+dispense
   pass the raw string through `dangerouslySetInnerHTML` or a markdown renderer; it's a single
   inline token grammar, not general markdown.
 - `Citations` is an object keyed by citation tokens (`[1]`, `[2]`, ...) that map tokens to the
-  source URL (see "Citation URLs on code sites" below for a gotcha).
+  source URL (see "Citation URLs on SPA sites" below for a gotcha).
 - `CitationTitleMapping` is an object keyed by the same tokens that maps each token to a
   human-readable title — **use this as the visible label** for citation links and citation-list
   rows, with the URL as a fallback only when the mapping is absent.
@@ -193,10 +193,10 @@ function parseSummaryWithCitations(summary: string): SummaryPart[] {
 Render each `citation` part as a framework-native anchor element, using
 `CitationTitleMapping[token]` for the visible label when available.
 
-### Citation URLs on code sites
+### Citation URLs on SPA sites
 
 On Microsoft-shipped portal templates the `Citations` URLs point at the built-in Knowledge Base
-page (`/knowledgebase/article/<articleNumber>`). On **code sites** the built-in KB page does
+page (`/knowledgebase/article/<articleNumber>`). On **SPA sites** the built-in KB page does
 not exist, so the Search Summary service falls back to returning URLs of the form:
 
 ```

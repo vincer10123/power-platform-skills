@@ -750,7 +750,7 @@ below.
       <p>
         {parts.map((part, i) => {
           if (part.kind === 'text') return <span key={i}>{part.text}</span>;
-          const href = resolveCitationHref(part.url); // see "Citation URLs on code sites"
+          const href = resolveCitationHref(part.url); // see "Citation URLs on SPA sites"
           // Hover label: prefer the mapped title; fall back to the URL; only fall back to the
           // bare token (e.g. "[1]") if neither is available. Keep the visible text as the token
           // so inline citations stay scannable, but the title attribute should always carry the
@@ -767,7 +767,7 @@ below.
   }
   ```
 
-  **Citation URL rewriting (code sites).** On a code site the server returns
+  **Citation URL rewriting (Single Page Application sites).** On a SPA site the server returns
   `/page-not-found/?id=<knowledgearticleid>` because the built-in KB page doesn't exist. You
   **must** include the `extractKnowledgeArticleId` helper from the reference and rewrite the
   citation href to the SPA's KB route before emitting the anchor — otherwise every citation lands
@@ -924,7 +924,7 @@ the summarization service to import it.
     as `[[N]](url)` markdown tokens. Emit framework-native anchors; never pass the raw `Summary`
     through `dangerouslySetInnerHTML` / `v-html` / `innerHTML`, and never route it through a
     markdown renderer.
-12. **Citation hrefs are rewritten on code sites** — include `extractKnowledgeArticleId` and
+12. **Citation hrefs are rewritten on SPA sites** — include `extractKnowledgeArticleId` and
     rewrite `/page-not-found/?id=<guid>` URLs to the SPA's KB route (default `/knowledge/:id`).
 13. **Citation labels default to `CitationTitleMapping[token]`** — fall back to the URL only
     when the mapping is missing. Bare URLs in a citation list read as broken UI.
@@ -967,7 +967,7 @@ the summarization service to import it.
 - [ ] Search Summary wiring (if any) uses `parseSummaryWithCitations` and renders tokens as
       framework-native anchors — no `dangerouslySetInnerHTML` / `v-html` / markdown renderer
 - [ ] Search Summary citation hrefs are rewritten via `extractKnowledgeArticleId` to the SPA's KB
-      route (code sites only) and labels default to `CitationTitleMapping[token]`
+      route (SPA sites only) and labels default to `CitationTitleMapping[token]`
 - [ ] List-summary targets (if any) call `fetchListSummary` (collection form), mirror the
       existing list fetch's `$filter`/`$orderby` verbatim, omit `$top` and `Prefer: odata.maxpagesize`,
       wrap the rendered `Summary` with `SummaryMarkdown`, and had their `$expand` nav property

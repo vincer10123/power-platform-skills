@@ -1,7 +1,7 @@
 ---
 name: add-ai-webapi
 description: >-
-  Integrates Power Pages generative-AI summarization APIs (PREVIEW) into a code site: the Search
+  Integrates Power Pages generative-AI summarization APIs (PREVIEW) into a Single Page Application (SPA) site: the Search
   Summary API, the Data Summarization API, and the canonical Case-page Copilot preset. These
   three APIs are in preview — gated by a three-level admin hierarchy (tenant PowerShell,
   Copilot Hub env/site governance, site maker toggle) and subject to change before GA.
@@ -26,7 +26,7 @@ model: opus
 
 Surface the note above to the user during Phase 1 and again in the Phase 8 summary so they don't take a runtime dependency on these APIs for production-critical paths.
 
-Integrate Power Pages generative-AI summarization APIs into a code site. This skill focuses on the AI layer (Layer 3): the summarization service code and the `Summarization/*` site settings. The underlying Web API prerequisites — `Webapi/<table>/enabled`, `Webapi/<table>/fields`, table permissions, and web roles — are **delegated** to `/integrate-webapi` and `/create-webroles` so there is a single source of truth for every layer.
+Integrate Power Pages generative-AI summarization APIs into a SPA site. This skill focuses on the AI layer (Layer 3): the summarization service code and the `Summarization/*` site settings. The underlying Web API prerequisites — `Webapi/<table>/enabled`, `Webapi/<table>/fields`, table permissions, and web roles — are **delegated** to `/integrate-webapi` and `/create-webroles` so there is a single source of truth for every layer.
 
 ## The three APIs covered
 
@@ -78,7 +78,7 @@ Integrate Power Pages generative-AI summarization APIs into a code site. This sk
 
 > **Prerequisites:**
 >
-> - An existing Power Pages code site created via `/create-site`
+> - An existing Power Pages SPA site created via `/create-site`
 > - A Dataverse data model (tables + columns) set up via `/setup-datamodel` or manually — for data
 >   summarization and the case preset
 > - The site must have been deployed at least once (`.powerpages-site` folder must exist) for the
@@ -225,7 +225,7 @@ delegation needs at least one role before `/integrate-webapi` can create table p
 
 Use the **Explore agent** (via `Task` with `subagent_type: "Explore"`) with thoroughness "medium":
 
-> "Analyse this Power Pages code site for generative-AI summarization integration opportunities.
+> "Analyse this Power Pages SPA site for generative-AI summarization integration opportunities.
 > Report the following as structured sections:
 >
 > **Reserved slot markers (check this first).** Grep the `src/` tree for the comment pattern
@@ -597,7 +597,7 @@ For the first target in the confirmed manifest, invoke the agent at
 invoking. The agent does not interpret square-bracket placeholders; sending the literal text
 `[search | data | case-preset]` will confuse it.
 
-> "Integrate the **<API name>** for the Power Pages code site.
+> "Integrate the **<API name>** for the Power Pages SPA site.
 >
 > - APIs to wire: <one of: `search`, `data`, `case-preset`>
 > - Target file: <absolute or project-relative path to the page/component to wire>
@@ -716,7 +716,7 @@ architect with a missing folder.
 
 Invoke the agent at `${CLAUDE_PLUGIN_ROOT}/agents/ai-webapi-settings-architect.md` via `Task`:
 
-> "Analyse this Power Pages code site and propose generative-AI summarization site settings.
+> "Analyse this Power Pages SPA site and propose generative-AI summarization site settings.
 > The following AI APIs were integrated in Phase 5: [data / case-preset list with per-target
 > `InstructionIdentifier` values]. Check for existing `Summarization/*` settings. Layer 1
 > (`Webapi/<table>/*`) and Layer 2 (table permissions) were configured in Phase 4 via
@@ -879,7 +879,7 @@ new settings and permissions.
     summary paragraph renders above the keyword results, the inline `[[N]](url)` markdown is
     rendered as framework-native anchors (not raw markdown text), and `[1]`, `[2]`, ... tokens
     are clickable links pointing at the **rewritten SPA route** (e.g. `/knowledge/<guid>`),
-    **not** the raw `/page-not-found/?id=<guid>` URLs the API returns on a code site. If a
+    **not** the raw `/page-not-found/?id=<guid>` URLs the API returns on a SPA site. If a
     citation is dropping the user on the built-in 404 page, the `extractKnowledgeArticleId`
     rewrite isn't wired — see the agent's Step 5 "Citation URL rewriting" section.
   - **Disabled-state card** (expected branch, not a bug) — if the search shows a card headed
