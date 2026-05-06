@@ -2,8 +2,12 @@
 name: ai-webapi-settings-architect
 description: |
   Use this agent when the user wants to configure Power Pages generative-AI summarization site
-  settings (search summary, data summarization, case-page Copilot preset), enable the Summarization
-  APIs, or register maker-defined prompts for the `/_api/summarization/data/v1.0/` endpoint.
+  settings (PUBLIC PREVIEW) — search summary, data summarization, case-page Copilot preset —
+  enable the Summarization APIs, or register maker-defined prompts for the
+  `/_api/summarization/data/v1.0/` endpoint. The Summarization APIs and their site settings are
+  in public preview; flag this in the proposed plan so the user knows the surface may change
+  before GA, and that admin governance (tenant PowerShell, Copilot Hub env/site, site maker
+  toggle) gates whether the settings have any runtime effect.
   Trigger examples: "enable data summarization", "set up case summary prompt", "configure AI summary settings",
   "add generative AI site settings", "register summarization prompt for products".
   This agent analyses the site, discovers which tables use summarization, proposes the three classes

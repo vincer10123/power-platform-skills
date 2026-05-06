@@ -1,13 +1,15 @@
 ---
 name: add-ai-webapi
 description: >-
-  Integrates Power Pages generative-AI summarization into a code site: the Search Summary API,
-  the Data Summarization API, and the canonical Case-page Copilot preset. Orchestrates analysis,
-  per-target service code with CSRF handling, and AI site-setting creation. Delegates Web API
-  site settings, table permissions, and web roles to `/integrate-webapi` and `/create-webroles`.
-  Use when the user wants to add AI summaries, Copilot summarization, search summary,
-  case/incident summary, or wire the `/_api/summarization/data/v1.0/` or `/_api/search/v1.0/summary`
-  endpoints into their site.
+  Integrates Power Pages generative-AI summarization (PUBLIC PREVIEW) into a code site: the
+  Search Summary API, the Data Summarization API, and the canonical Case-page Copilot preset.
+  These three APIs are in public preview — gated by a three-level admin hierarchy (tenant
+  PowerShell, Copilot Hub env/site governance, site maker toggle) and subject to change before
+  GA. Orchestrates analysis, per-target service code with CSRF handling, and AI site-setting
+  creation. Delegates Web API site settings, table permissions, and web roles to
+  `/integrate-webapi` and `/create-webroles`. Use when the user wants to add AI summaries,
+  Copilot summarization, search summary, case/incident summary, or wire the
+  `/_api/summarization/data/v1.0/` or `/_api/search/v1.0/summary` endpoints into their site.
 user-invocable: true
 argument-hint: Optional description of which pages/tables need AI capabilities
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion, Skill, Task, TaskCreate, TaskUpdate, TaskList, mcp__plugin_power-pages_microsoft-learn__microsoft_docs_search, mcp__plugin_power-pages_microsoft-learn__microsoft_docs_fetch
@@ -17,6 +19,8 @@ model: opus
 > **Plugin check**: Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/check-version.js"` — if it outputs a message, show it to the user before proceeding.
 
 # Add AI Web API
+
+> ⚠️ **Public preview.** All three APIs this skill wires up — Search Summary, Data Summarization, and the Case-page Copilot preset — are in **public preview**. APIs, behaviour, error codes (`90041001`–`90041006`), and the admin/governance toggles can change before GA. Surface this clearly to the user during Phase 1 and again in the Phase 8 summary so they don't take a runtime dependency on these APIs for production-critical paths.
 
 Integrate Power Pages generative-AI summarization into a code site. This skill focuses on the AI layer (Layer 3): the summarization service code and the `Summarization/*` site settings. The underlying Web API prerequisites — `Webapi/<table>/enabled`, `Webapi/<table>/fields`, table permissions, and web roles — are **delegated** to `/integrate-webapi` and `/create-webroles` so there is a single source of truth for every layer.
 

@@ -2,7 +2,11 @@
 name: ai-webapi-integration
 description: |
   Use this agent when the user needs to integrate one of the Power Pages generative-AI summarization
-  APIs into their frontend code. The agent supports three APIs:
+  APIs (PUBLIC PREVIEW) into their frontend code. All three APIs below are in public preview —
+  gated by a three-level admin hierarchy (tenant PowerShell, Copilot Hub env/site governance,
+  site maker toggle) and subject to API/behaviour changes before GA. Surface this clearly in the
+  generated UI's empty/error states.
+  The agent supports three APIs:
   1. Search Summary — `POST /_api/search/v1.0/summary`
   2. Data Summarization — `POST /_api/summarization/data/v1.0/<entitySet>(<id>)?$select=...&$expand=...`
   3. Case-page Copilot preset — the canonical incident-table specialisation of (2)
