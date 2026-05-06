@@ -36,9 +36,7 @@ Use this framework to recommend the right backend integration approach for a Pow
 
 ---
 
-### AI Web API (`/add-ai-webapi`) *(public preview)*
-
-> ⚠️ **Public preview.** All three AI endpoints (Search Summary, Data Summarization, Case-page Copilot preset) are in **public preview**. APIs, error shapes, and the admin/governance toggles can change before GA. When recommending this approach, factor in: (a) the user must accept preview status; (b) tenant + environment/site + maker-level governance must all allow it; (c) production-critical paths shouldn't take a hard runtime dependency on preview APIs.
+### AI Web API (`/add-ai-webapi`)
 
 **What it is:** A specialization of Web API for AI-augmented reads. Three endpoints: **Search Summary** (`/_api/search/v1.0/summary`) produces a grounded AI answer over the site's search index; **Data Summarization** (`/_api/summarization/data/v1.0/<entitySet>(<id>)?$select=...`) produces an AI summary of one record or a collection; the **Case-page Copilot preset** is a pre-built Data Summarization call for the `incident` table.
 
@@ -55,14 +53,14 @@ Use this framework to recommend the right backend integration approach for a Pow
 - The output needs to be deterministic or exact (AI output is probabilistic; use Web API for exact data)
 - The operation writes data (these endpoints are read-only — use Web API or Server Logic)
 - The data isn't in Dataverse (Search Summary indexes site content; Data Summarization requires a Dataverse entity set)
-- The tenant doesn't have generative AI features enabled (these APIs are public preview and return `90041001` until an admin enables them)
+- The tenant doesn't have generative AI features enabled (these APIs are preview and return `90041001` until an admin enables them)
 - The site uses the Microsoft-shipped search control and just wants AI-summarised search results on it — that's a workspace toggle (`Search/Summary/Title` content snippet), not a code integration
 
 **Key characteristics:**
 - Layered on Web API — Data Summarization requires the same `Webapi/<table>/enabled`, `Webapi/<table>/fields`, and table permissions as regular Web API reads. Search Summary has no per-table prereqs.
 - Code runs in the browser; the AI pass happens server-side
 - Read-only — no validate-and-execute concerns (Secure Action Principle does not apply)
-- Public preview — requires tenant admin to enable generative AI, and (for Search Summary) a site-level Copilot workspace toggle. APIs and admin toggles may change before GA.
+- Preview feature — requires tenant admin to enable generative AI, and (for Search Summary) a site-level Copilot workspace toggle. APIs and admin toggles may change before GA.
 - `/add-ai-webapi` delegates Layer 1/2 to `/integrate-webapi` in AI-only read mode — if a Web API item already covers the same table, the AI item detects the existing prereqs and skips the delegation
 
 **Relationship to Web API:** AI Web API items for a given Dataverse table should be ordered **after** any regular Web API item for the same table (Web API sets up Layer 1/2; AI adds Layer 3 on top). Search Summary items can stand alone since they have no per-table prereqs.

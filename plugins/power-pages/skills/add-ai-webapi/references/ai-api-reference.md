@@ -1,7 +1,5 @@
 # Power Pages Generative-AI Summarization APIs
 
-> ⚠️ **Public preview.** All three APIs documented on this page — Search Summary, Data Summarization, and the Case-page Copilot preset — are in **public preview**. APIs, request/response shapes, error codes (`90041001`–`90041006`), and the admin/governance hierarchy that gates them can change before general availability. Treat anything below as a snapshot of preview behaviour, not stable contract.
-
 Reference for the three Power Pages endpoints that return AI-generated summaries. All three use the same portal session auth — a CSRF token fetched from `/_layout/tokenhtml` sent as the `__RequestVerificationToken` header. No `Authorization` bearer is needed.
 
 Sources (Microsoft Learn):
@@ -53,7 +51,7 @@ is why the `add-ai-webapi` skill orders its work as Phase 4 (Layer 1 + Layer 2 v
 
 ## 1. Search Summary API
 
-Summarises search results using generative AI for a user query. Requires that **Site search with generative AI** is enabled in the site's Copilot workspace. **Public preview.**
+Summarises search results using generative AI for a user query. Requires that **Site search with generative AI** is enabled in the site's Copilot workspace.
 
 | Method | URI |
 |--------|-----|
@@ -577,7 +575,7 @@ missing surface as "the Copilot card never loaded". Always render **one of four*
 
 ## 3. Case-page Copilot preset
 
-The canonical implementation of the data-summarization API for the **incident** (case) table. Shipped by the Customer self-service and Community portal templates as a Copilot summary section on the support case page. **Public preview.**
+The canonical implementation of the data-summarization API for the **incident** (case) table. Shipped by the Customer self-service and Community portal templates as a Copilot summary section on the support case page.
 
 | Field | Value |
 |-------|-------|

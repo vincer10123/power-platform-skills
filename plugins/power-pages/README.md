@@ -144,8 +144,6 @@ The skill first scans your codebase to find components using mock data, placehol
 
 > "Add AI summaries to my site"
 
-> ⚠️ **Public preview** — Power Pages generative-AI summarization (Search Summary, Data Summarization, and the Case-page Copilot preset) is in **public preview**. The APIs, behaviour, error shapes, and admin/governance toggles can change before general availability, and they are gated by a three-level admin hierarchy (tenant PowerShell setting → Copilot Hub environment/site governance → site maker toggle). Don't take a runtime dependency on them for production-critical paths until they reach GA.
-
 Integrates Power Pages generative-AI summarization APIs into a code site: the **Search Summary API** (`/_api/search/v1.0/summary`), the **Data Summarization API** (`/_api/summarization/data/v1.0/...`), and the canonical **Case-page Copilot preset** for the incident table.
 
 The skill scans your code for search pages, record detail pages, and case/incident pages and proposes which APIs to wire where. For any data / case-preset target that is missing its Web API prerequisites (Layer 1 `Webapi/<table>/*` settings, Layer 2 table permissions, or the shared `powerPagesApi.ts` client), the skill delegates to `/integrate-webapi` in an **AI-only read mode** — read-only permissions, minimal fields list (no primary key, only `_<col>_value` for lookups) — and to `/create-webroles` if no web role exists yet. Once Layer 1/2 is in place, the skill spawns the **AI Web API Integration** agent sequentially per target to create a single summarization service (`fetchSearchSummary`, `fetchDataSummary`, `fetchCaseSummary`) with correct CSRF handling, a framework-idiomatic wrapper, and real UI call sites. Finally, the **AI Web API Settings Architect** is invoked for Layer 3 to propose the `Summarization/Data/Enable` toggle and per-prompt `Summarization/prompt/<identifier>` settings.
@@ -247,8 +245,8 @@ The plugin includes 6 specialized agents that are spawned automatically by skill
 | **Web API Integration** | Creates typed API client, services, and hooks for a Dataverse table | `/integrate-webapi` (directly); `/add-ai-webapi` (transitively, when it delegates) |
 | **Table Permissions** | Proposes table permissions (web roles, CRUD flags, scopes) with a visual Mermaid diagram | `/integrate-webapi`, `/audit-permissions`; `/add-ai-webapi` (transitively, in AI-only read mode) |
 | **Web API Settings** | Proposes Web API site settings with case-sensitive validated column names from Dataverse | `/integrate-webapi` (directly); `/add-ai-webapi` (transitively, in AI-only read mode) |
-| **AI Web API Integration** *(public preview)* | Creates raw-`fetch` summarization service with CSRF, framework wrapper, and UI wiring | `/add-ai-webapi` |
-| **AI Web API Settings Architect** *(public preview)* | Proposes `Summarization/Data/Enable` and maker-defined `Summarization/prompt/<identifier>` site settings | `/add-ai-webapi` |
+| **AI Web API Integration** | Creates raw-`fetch` summarization service with CSRF, framework wrapper, and UI wiring | `/add-ai-webapi` |
+| **AI Web API Settings Architect** | Proposes `Summarization/Data/Enable` and maker-defined `Summarization/prompt/<identifier>` site settings | `/add-ai-webapi` |
 
 The Data Model Architect, Table Permissions, and Web API Settings agents are **read-only** — they analyze and propose but never create or modify resources directly. You review and approve their proposals before any changes are made.
 
@@ -272,7 +270,7 @@ A common end-to-end workflow looks like this:
 4.  /setup-datamodel    →  Create Dataverse tables
 5.  /add-sample-data    →  Populate tables with test records
 6.  /integrate-backend  →  Pick the right backend approach (Web API / Server Logic / Cloud Flow)
-7.  /add-ai-webapi      →  Wire Copilot / search / data summarization APIs into pages (public preview)
+7.  /add-ai-webapi      →  Wire Copilot / search / data summarization APIs into pages
 8.  /create-webroles    →  Define access roles
 9.  /setup-auth         →  Add login/logout + role-based UI
 10. /audit-permissions  →  Verify table permissions are safe

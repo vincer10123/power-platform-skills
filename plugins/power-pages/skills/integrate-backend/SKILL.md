@@ -131,14 +131,12 @@ Use the decision matrix, intent mapping, and **Secure Action Principle** from th
 
 1. **Can Web API alone handle this?** If it's straightforward Dataverse CRUD with no external calls, no secrets, no server-side logic, and **no business rules governing the write** — recommend Web API. It's the simplest option.
 
-2. **Does it need AI Web API?** *(public preview)* If any of these apply, AI Web API is the right fit:
+2. **Does it need AI Web API?** If any of these apply, AI Web API is the right fit:
    - The UI wants an AI-generated summary of a record on its detail page (e.g., "summarize this case", "Copilot summary")
    - The UI wants an AI summary of a list or collection (e.g., "summarize open orders", "highlight trends in this week's cases")
    - A detail page wants related-record discovery (e.g., "suggest KB articles for this case", "similar products", "similar cases") — Search Summary's grounded retrieval is a better fit than a hand-rolled OData keyword match
    - The site wants AI-grounded search with citations, replacing or augmenting keyword-only search
    - The site handles incident/case/ticket data and the canonical Copilot case-page preset applies
-
-   **All three AI endpoints are in public preview** — call this out when recommending the approach. They're gated by tenant + environment/site + maker-level governance, and APIs/error shapes may change before GA. Don't recommend AI Web API for production-critical paths that can't accept a preview-API dependency.
 
    AI Web API is read-only — the Secure Action Principle does not apply. If an AI item covers a Dataverse table that is also covered by a Web API item, put the AI item in a later phase (it depends on the Web API Layer 1/2 prereqs being in place). Search Summary items have no per-table prereqs and can stand alone.
 

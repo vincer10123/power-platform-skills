@@ -242,11 +242,11 @@ Immediately after the dev server starts, verify the scaffold is working:
    >
    > Always generate options that make sense for the specific site — never reuse a fixed list.
 
-3. **AI Component Planning** *(public preview)* — Based on Phase 1 answers (site name, purpose, audience) and the feature selection above, propose which of the Power Pages generative-AI summarization APIs the site might use. **Tell the user upfront that these are public-preview APIs** — gated by a three-level admin hierarchy (tenant PowerShell, Copilot Hub environment/site governance, site maker toggle), with behaviour and error shapes subject to change before GA. The site itself does not depend on them — the page ships with reserved slots and runs without AI; `/add-ai-webapi` populates the slots later when the user is ready. Use `AskUserQuestion` with multi-select to let the user opt in:
+3. **AI Component Planning** — Based on Phase 1 answers (site name, purpose, audience) and the feature selection above, propose which of the Power Pages generative-AI summarization APIs the site might use. The site itself does not depend on them — the page ships with reserved slots and runs without AI; `/add-ai-webapi` populates the slots later when the user is ready. Use `AskUserQuestion` with multi-select to let the user opt in:
 
    | Question | Header | Options |
    |----------|--------|---------|
-   | Which AI summarization features should the site have? (multi-select — public preview; each can be added later with `/add-ai-webapi`) | AI Summaries | *(generate 2-4 context-aware options plus "None for now")* |
+   | Which AI summarization features should the site have? (multi-select — each can be added later with `/add-ai-webapi`) | AI Summaries | *(generate 2-4 context-aware options plus "None for now")* |
 
    > **Options are NOT hardcoded.** Infer relevant AI summary features from Phase 1 and the features picked above. Examples:
    > - "HR Dashboard" + Leave Requests feature → "Data summarization for leave requests", "Search summary on the knowledge base"
@@ -308,7 +308,7 @@ Immediately after the dev server starts, verify the scaffold is working:
 
 Read the design aesthetics reference: `${CLAUDE_PLUGIN_ROOT}/skills/create-site/references/design-aesthetics.md`. Every field you populate below should be justified by the chosen aesthetic + mood from Phase 3.
 
-> **AI Readiness in the plan (public preview).** If `AI_SUMMARY_PLACEMENTS` from Phase 3 is non-empty, reflect each placement in the matching `PAGES_DATA` entry's `description` or `content` — e.g., *"Reserved slot for the Copilot case summary card (public preview); populated later by `/add-ai-webapi`. The page ships without AI."* This keeps the user's expectation honest: the AI APIs are in public preview (subject to change before GA, gated by tenant/environment/site admin toggles), the site does not depend on them, and there is no "Run /add-ai-webapi" placeholder visible to end-users. If `AI_SUMMARY_PLACEMENTS` is empty, omit any AI references from the plan.
+> **AI Readiness in the plan.** If `AI_SUMMARY_PLACEMENTS` from Phase 3 is non-empty, reflect each placement in the matching `PAGES_DATA` entry's `description` or `content` — e.g., *"Reserved slot for the Copilot case summary card; populated later by `/add-ai-webapi`. The page ships without AI."* This keeps the user's expectation honest: the site does not depend on generative-AI features being enabled on the tenant, and there is no "Run /add-ai-webapi" placeholder visible to end-users. If `AI_SUMMARY_PLACEMENTS` is empty, omit any AI references from the plan.
 
 ### 4.2 Build the Plan Data
 
