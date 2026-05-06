@@ -612,12 +612,13 @@ POST /_api/summarization/data/v1.0/incidents(<caseId>)?$select=description,title
 
 ### Empty response handling
 
-The case preset trips `90041005` more often than the generic data endpoint because it expands
-`incident_adx_portalcomments($select=description)` — a freshly-created case with no comments
-and a blank `description` has literally nothing to summarise. Treat `90041005` here as a
-first-class empty state, not an error: render "No case summary yet — add a description or a
-comment and try again" in the summary card (keep the Copilot shell visible, including the
-gradient border and header) rather than hiding the section or showing a generic error.
+The Microsoft-shipped support-case configuration trips `90041005` more often than other Data
+Summarization configurations because it expands `incident_adx_portalcomments($select=description)`
+— a freshly-created case with no comments and a blank `description` has literally nothing to
+summarise. Treat `90041005` here as a first-class empty state, not an error: render "No case
+summary yet — add a description or a comment and try again" in the summary card (keep the
+Copilot-style shell visible, including the gradient border and header) rather than hiding the
+section or showing a generic error.
 
 SKILL.md Phase 8's test recipe already tells the user to add at least one comment before
 clicking the chevron — surface that same guidance in the empty-state text so testers know why
@@ -641,8 +642,8 @@ async function getCsrfToken(): Promise<string> {
 
 Send on every summarization request:
 
-| Header | Search Summary | Data Summarization / Case preset |
-|--------|----------------|----------------------------------|
+| Header | Search Summary | Data Summarization |
+|--------|----------------|--------------------|
 | `Content-Type` | `application/x-www-form-urlencoded` | `application/json; charset=utf-8` |
 | `Accept` | `application/json` | `application/json` |
 | `__RequestVerificationToken` | CSRF token from `/_layout/tokenhtml` | CSRF token from `/_layout/tokenhtml` |
@@ -663,8 +664,8 @@ If a `getCsrfToken` helper already exists elsewhere in the site (for example fro
 | API | Service function | React hook |
 |-----|------------------|------------|
 | Search summary | `fetchSearchSummary(userQuery: string)` | `useSearchSummary()` |
-| Data summarization (generic) | `fetchDataSummary(entitySetName: string, recordId: string, options?: DataSummaryOptions)` | `useDataSummary(entitySet, id, options?)` |
-| Case preset | `fetchCaseSummary(caseId: string)` | `useCaseSummary(caseId)` |
+| Data summarization | `fetchDataSummary(entitySetName: string, recordId: string, options?: DataSummaryOptions)` | `useDataSummary(entitySet, id, options?)` |
+| Data summarization (Microsoft-shipped support-case wrapper, optional) | `fetchCaseSummary(caseId: string)` | `useCaseSummary(caseId)` |
 
 `DataSummaryOptions` shape:
 

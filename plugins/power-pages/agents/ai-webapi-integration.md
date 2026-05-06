@@ -2,10 +2,14 @@
 name: ai-webapi-integration
 description: |
   Use this agent when the user needs to integrate one of the Power Pages generative-AI summarization
-  APIs into their frontend code. The agent supports three APIs:
+  APIs into their frontend code. The agent supports two APIs:
   1. Search Summary — `POST /_api/search/v1.0/summary`
   2. Data Summarization — `POST /_api/summarization/data/v1.0/<entitySet>(<id>)?$select=...&$expand=...`
-  3. Case-page Copilot preset — the canonical incident-table specialisation of (2)
+  Data Summarization can be configured for any record-detail or list page; one common
+  configuration documented by Microsoft is the support-case scenario (entity set `incidents`,
+  `$select=description,title`, `$expand=incident_adx_portalcomments($select=description)`,
+  `InstructionIdentifier=Summarization/prompt/case_summary`) — emit that shape only when the
+  caller explicitly asks for it, never auto-pick it because the site has an `incident` table.
   Trigger examples: "add AI summary for the case page", "integrate data summarization for products",
   "wire the search summary API into the search page", "add Copilot summary to the incident page".
   This agent is NOT for designing data models (use `data-model-architect`), configuring Web API
@@ -132,27 +136,33 @@ helper from it if one is exported separately, but summarization requests go thro
 
 ## Step 2: Determine Which APIs to Integrate
 
-The caller (the `/add-ai-webapi` skill orchestrator) specifies which of the three APIs to wire in,
+The caller (the `/add-ai-webapi` skill orchestrator) specifies which of the two APIs to wire in,
 the target tables, entity sets, and `InstructionIdentifier` values. Extract from the caller's prompt:
 
 | Input | Example | Used for |
 |-------|---------|----------|
-| API(s) | `search`, `data`, `case-preset` | Which service function to emit |
+| API(s) | `search`, `data` | Which service function to emit |
 | Target tables | `cr4fc_product`, `incident` | Used to name the service function and pick a default identifier |
 | Entity set names | `cr4fc_products`, `incidents` | Used in the `/_api/summarization/data/v1.0/<entitySet>(...)` URL |
 | `$select` fields | `description,title` | Query string on the data summarization request |
 | `$expand` fields | `incident_adx_portalcomments($select=description)` | Query string on the data summarization request |
 | `InstructionIdentifier` | `Summarization/prompt/case_summary` | Body field on the data summarization request |
 
-For the **case-page preset**, hardcode:
+**Microsoft-shipped support-case scenario (example, not a default).** Microsoft Learn documents
+one specific Data Summarization configuration for a support-case detail page on the standard
+`incident` table:
 
 - entity set = `incidents`
 - `$select=description,title`
 - `$expand=incident_adx_portalcomments($select=description)`
 - `InstructionIdentifier=Summarization/prompt/case_summary`
 
-If the caller did not specify but there is an `incident` table in `.datamodel-manifest.json` and a
-case/incident page component exists, default to wiring the case preset.
+Use these values verbatim **only when the caller has explicitly identified this as the desired
+configuration** (the maker chose it during `/add-ai-webapi` Phase 3, or a `POWERPAGES:AI-SLOT`
+marker on a case/incident detail page references the case prompt). **Never default to this
+configuration just because the site has an `incident` table** — a custom case-like table, or a
+different facet of the standard case (priority, owner, SLA timer), is a regular Data Summarization
+call with maker-defined values.
 
 ### 2.1 Single-record vs list summary — decide the URL shape
 
@@ -571,7 +581,11 @@ if (!response.ok) {
 (`dataSummaryErrorMessage` returns the friendly string when `code` is in the map and the generic
 status message otherwise — safe to reuse here.)
 
-### 3.4 Case-page preset
+### 3.4 Example: support-case scenario (Microsoft-shipped recipe)
+
+A common Data Summarization call documented by Microsoft Learn for a support-case detail page on
+the standard `incident` table — emit this thin wrapper **only when the caller asked for the
+support-case scenario**, never as an automatic recommendation:
 
 ```ts
 export function fetchCaseSummary(caseId: string): Promise<DataSummaryResponse> {
@@ -583,8 +597,11 @@ export function fetchCaseSummary(caseId: string): Promise<DataSummaryResponse> {
 }
 ```
 
-The preset is a thin wrapper around `fetchDataSummary` — keep it this way so maintainers only have
-one request pipeline to reason about.
+If the caller specified different columns, prompt, or table (any custom case-like table), drop
+this wrapper and call `fetchDataSummary` directly with the maker-defined values.
+
+This support-case wrapper is a thin convenience around `fetchDataSummary` — keep it this way so
+maintainers only have one request pipeline to reason about.
 
 ### 3.5 Rules
 
@@ -610,7 +627,7 @@ Match the framework detected in Step 1.1:
 
 Each wrapper must:
 
-- Accept the minimum input needed (e.g. `caseId` for the case preset).
+- Accept the minimum input needed (e.g. `caseId` for a support-case wrapper).
 - Track `isLoading: boolean` and `error: string | null`.
 - Expose a `refetch()` / `run()` callback the UI can trigger on demand.
 - Surface the `Recommendations` array from data summarization so the UI can offer follow-up prompts.
@@ -639,10 +656,12 @@ slot). Supported marker forms:
 When there is no marker (heuristic-sourced target), fall back to the per-kind placement rules
 below.
 
-- **Case preset** → find the incident/case detail page (look for components that read a case `id`
-  from the URL, or match names like `Case*`, `Incident*`, `Ticket*`). Add a collapsible summary
-  section at the top that mirrors the Microsoft-shipped Copilot summary card. Reproduce all the
-  affordances from the MS Learn case-page template — not just the chevron:
+- **Data summarization on a support-case detail page (when the caller specified the
+  Microsoft-shipped support-case scenario)** → find the case/incident detail page (look for
+  components that read a case `id` from the URL, or match names like `Case*`, `Incident*`,
+  `Ticket*`). Add a collapsible summary section at the top that mirrors the Microsoft-shipped
+  Copilot summary card. Reproduce all the affordances from the MS Learn case-page template — not
+  just the chevron:
 
   | Element | Purpose | Source |
   |---------|---------|--------|
@@ -801,12 +820,12 @@ section reads as a broken feature — users interpret the missing Copilot card a
 never loaded" and file bugs. Keep the section visible and show a calm empty-state message
 instead.
 
-| Branch | Search Summary | Data Summarization / Case preset |
-|--------|---------------|----------------------------------|
+| Branch | Search Summary | Data Summarization |
+|--------|---------------|--------------------|
 | `loading` | Shimmer block in the summary slot, citation list skeleton | Shimmer block inside the Copilot card (gradient border + header still visible) |
 | `error` | Generic: error message + **Retry** button. **Disabled sub-state** (see below): inline the enable instructions + link — no retry, the admin has to flip the toggle. | Error message (use `dataSummaryErrorMessage` for code dispatch) + **Retry** button. For `90041001` (Gen AI features disabled), also surface the enable link since retry won't help. |
 | `content` | `parseSummaryWithCitations` → clickable tokens; optional sources list using `CitationTitleMapping` | `Summary` text + chip row of `Recommendations` (each chip calls `refine(config)`) + disclaimer |
-| `empty` | "No related items found for your query." | Case preset: "No case summary yet — add a description or a comment and try again." Generic data: "No summary available for this record yet." |
+| `empty` | "No related items found for your query." | Generic: "No summary available for this record yet." Support-case scenario specifically: "No case summary yet — add a description or a comment and try again." |
 
 **Gen AI disabled sub-state (Search Summary).** When `fetchSearchSummary` throws `SearchSummaryApiError` and `isGenAiSearchDisabled(err)` returns true, the response was a 200-with-embedded-error envelope (`{ Code: 400, Message: "Gen AI Search is disabled." }`) — **not** an empty-results case and **not** a retryable failure. Retrying will loop forever. Render a calm, specific remediation card in place of the summary:
 
@@ -907,11 +926,13 @@ the summarization service to import it.
 3. **OData 4.0 headers on data summarization** — include `OData-MaxVersion: 4.0` and
    `OData-Version: 4.0`.
 4. **Always `$select`** on data summarization — never wildcards.
-5. **One service file** — group all three functions; do not split per-API.
+5. **One service file** — group all functions; do not split per-API.
 6. **Reuse existing CSRF helpers** — do not create duplicates.
-7. **Case preset stays canonical** — entity set `incidents`, `$select=description,title`,
+7. **Microsoft-shipped support-case recipe is verbatim when the caller picked it** — entity set
+   `incidents`, `$select=description,title`,
    `$expand=incident_adx_portalcomments($select=description)`, identifier
-   `Summarization/prompt/case_summary`.
+   `Summarization/prompt/case_summary`. Never apply this configuration on the agent's own
+   initiative — the caller selects it explicitly or it isn't used.
 8. **Data summarization returns `Recommendations`** — expose them so the UI can trigger a follow-up
    call with `RecommendationConfig` set to the chosen `Config` (verbatim, never modified).
 9. **Error code 90041003** on the data summarization endpoint means the maker forgot to set

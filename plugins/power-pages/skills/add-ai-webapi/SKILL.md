@@ -1,10 +1,11 @@
 ---
 name: add-ai-webapi
 description: >-
-  Integrates Power Pages generative-AI summarization APIs (PREVIEW) into a Single Page Application (SPA) site: the Search
-  Summary API, the Data Summarization API, and the canonical Case-page Copilot preset. These
-  three APIs are in preview — gated by a three-level admin hierarchy (tenant PowerShell,
-  Copilot Hub env/site governance, site maker toggle) and subject to change before GA.
+  Integrates Power Pages generative-AI summarization APIs (PREVIEW) into a Single Page Application
+  (SPA) site: the Search Summary API and the Data Summarization API (which can be configured for
+  any record-detail or list page, including support-case pages). Both APIs are in preview — gated
+  by a three-level admin hierarchy (tenant PowerShell, Copilot Hub env/site governance, site
+  maker toggle) and subject to change before GA.
   Orchestrates analysis, per-target service code with CSRF handling, and AI site-setting
   creation. Delegates Web API site settings, table permissions, and web roles to
   `/integrate-webapi` and `/create-webroles`. Use when the user wants to add AI summaries,
@@ -28,20 +29,30 @@ Surface the note above to the user during Phase 1 and again in the Phase 8 summa
 
 Integrate Power Pages generative-AI summarization APIs into a SPA site. This skill focuses on the AI layer (Layer 3): the summarization service code and the `Summarization/*` site settings. The underlying Web API prerequisites — `Webapi/<table>/enabled`, `Webapi/<table>/fields`, table permissions, and web roles — are **delegated** to `/integrate-webapi` and `/create-webroles` so there is a single source of truth for every layer.
 
-## The three APIs covered
+## The two APIs covered
 
 | # | API | URL | Body | Response |
 |---|-----|-----|------|----------|
 | 1 | **Search Summary** | `POST /_api/search/v1.0/summary` | `{ userQuery }` | `{ Summary, Citations }` |
 | 2 | **Data Summarization** | `POST /_api/summarization/data/v1.0/<entitySet>(<id>)?$select=...&$expand=...` | `{ InstructionIdentifier }` or `{ RecommendationConfig }` | `{ Summary, Recommendations }` |
-| 3 | **Case-page Copilot preset** | Specialisation of (2) for `incident` | `{ InstructionIdentifier: "Summarization/prompt/case_summary" }` with `$select=description,title` and `$expand=incident_adx_portalcomments($select=description)` | same as (2) |
+
+> **Example: Microsoft-shipped Copilot summary on a support-case page.** Data Summarization can be
+> called with any combination of entity set, columns, and prompt — but Microsoft documents and
+> ships one specific configuration for the standard `incident` table:
+> `POST /_api/summarization/data/v1.0/incidents(<caseId>)?$select=description,title&$expand=incident_adx_portalcomments($select=description)`
+> with body `{ "InstructionIdentifier": "Summarization/prompt/case_summary" }`. This is sometimes
+> called the "Case-page Copilot preset" in Microsoft Learn. Treat it as one possible Data
+> Summarization recipe — useful when the user explicitly wants to mirror the Microsoft sample —
+> not as an automatic recommendation. A custom case-like table (`cr363_servicerequest`,
+> `adx_case`), or the standard incident table summarised on different facets (priority, owner,
+> SLA timer), is just a regular Data Summarization call with maker-defined values.
 
 > Reference: `${CLAUDE_PLUGIN_ROOT}/skills/add-ai-webapi/references/ai-api-reference.md` — canonical
-> API shapes, required headers, site-setting names, and error codes. Read this at the start of the
-> workflow; fetch the Microsoft Learn source pages with `mcp__plugin_power-pages_microsoft-learn__microsoft_docs_fetch`
-> if the user asks for the latest.
+> API shapes, required headers, site-setting names, error codes, and the documented support-case
+> example. Read this at the start of the workflow; fetch the Microsoft Learn source pages with
+> `mcp__plugin_power-pages_microsoft-learn__microsoft_docs_fetch` if the user asks for the latest.
 
-> **Admin governance hierarchy**: all three APIs are gated by a **three-level admin
+> **Admin governance hierarchy**: both APIs are gated by a **three-level admin
 > hierarchy** — tenant PowerShell setting (`enableGenerativeAIFeaturesForSiteUsers`), Copilot Hub
 > environment/site governance, and the site-level maker toggle (for Search Summary: Set up
 > workspace → Copilot → Site search (preview) → Enable Site search with generative AI (preview)).
@@ -53,8 +64,8 @@ Integrate Power Pages generative-AI summarization APIs into a SPA site. This ski
 > - **Search Summary** → HTTP **200** with an embedded envelope `{ Code: 400, Message: "Gen AI
 >   Search is disabled." }`. The generated `fetchSearchSummary` detects this and throws
 >   `SearchSummaryApiError`; the UI renders a remediation card.
-> - **Data Summarization / Case preset** → HTTP **400** with `error.code = 90041001` (admin-level
->   disabled) or `90041003` (per-site `Summarization/Data/Enable=false`).
+> - **Data Summarization** → HTTP **400** with `error.code = 90041001` (admin-level disabled) or
+>   `90041003` (per-site `Summarization/Data/Enable=false`).
 >
 > Full troubleshooting checklist (tenant → environment → site, plus runtime version, Bing
 > dependency, and cross-region data movement) lives in
@@ -79,8 +90,8 @@ Integrate Power Pages generative-AI summarization APIs into a SPA site. This ski
 > **Prerequisites:**
 >
 > - An existing Power Pages SPA site created via `/create-site`
-> - A Dataverse data model (tables + columns) set up via `/setup-datamodel` or manually — for data
->   summarization and the case preset
+> - A Dataverse data model (tables + columns) set up via `/setup-datamodel` or manually — for any
+>   Data Summarization target
 > - The site must have been deployed at least once (`.powerpages-site` folder must exist) for the
 >   settings phase
 
@@ -95,7 +106,7 @@ describe the runtime layering and are what maintainers grep for. The titles here
 user-facing task list.)
 
 1. **Check site is ready** — locate project, detect framework, check data model, deployment status, and web-role presence.
-2. **Find where AI summaries fit** — scan code for search / data / case-preset candidates.
+2. **Find where AI summaries fit** — scan code for search / data summarization candidates.
 3. **Confirm what to add** — review the manifest and pick which APIs / targets to integrate.
 4. **Set up data access for AI** — invoke `/create-webroles` if needed, then invoke `/integrate-webapi` in AI-only read mode for data/case targets. Skip entirely for search-only or when prerequisites already exist.
 5. **Add AI summary code** — invoke the `ai-webapi-integration` agent sequentially per target.
@@ -187,7 +198,8 @@ Read `package.json` and detect React / Vue / Angular / Astro. See
 ### 1.4 Check for data model
 
 Look for `.datamodel-manifest.json`. If found, read it — tables listed here are candidates for the
-data summarization API and the case preset (if an `incident` table is present).
+Data Summarization API. The standard `incident` table is a candidate like any other; do not
+treat it specially.
 
 ### 1.5 Check deployment status — hard prerequisite
 
@@ -221,7 +233,7 @@ delegation needs at least one role before `/integrate-webapi` can create table p
 
 ## Phase 2: Explore AI integration points
 
-**Goal**: Find every candidate for each of the three APIs — scoped to AI only.
+**Goal**: Find every candidate for each of the two APIs — scoped to AI only.
 
 Use the **Explore agent** (via `Task` with `subagent_type: "Explore"`) with thoroughness "medium":
 
@@ -230,10 +242,10 @@ Use the **Explore agent** (via `Task` with `subagent_type: "Explore"`) with thor
 >
 > **Reserved slot markers (check this first).** Grep the `src/` tree for the comment pattern
 > `POWERPAGES:AI-SLOT`. Sites scaffolded by `/create-site` with AI picks in Phase 3 carry these
-> markers at the intended insertion point — for example `{/* POWERPAGES:AI-SLOT kind=case-preset */}`
-> in a JSX CaseDetail page, or `<!-- POWERPAGES:AI-SLOT kind=search-summary -->` in a Vue/Angular/Astro
-> search page. Recognised `kind=` values: `search-summary`, `data-summarization`, `case-preset`.
-> For every match, report:
+> markers at the intended insertion point — for example
+> `{/* POWERPAGES:AI-SLOT kind=data-summarization */}` in a JSX detail page, or
+> `<!-- POWERPAGES:AI-SLOT kind=search-summary -->` in a Vue/Angular/Astro search page.
+> Recognised `kind=` values: `search-summary`, `data-summarization`. For every match, report:
 >
 > - File path and line number of the marker
 > - `kind=` value (tells you which API variant the maker already picked)
@@ -246,9 +258,10 @@ Use the **Explore agent** (via `Task` with `subagent_type: "Explore"`) with thor
 > already decided). Flag the manifest row with `source: marker` so Phase 5 knows the location is
 > pre-decided and the agent should remove the marker comment when it inserts the generated code.
 >
-> If a marker's `kind` doesn't match any natural target page (e.g., a `kind=case-preset` marker on
-> a page with no case/incident context), flag as `orphan-marker` and surface it in Phase 3 for the
-> user to resolve — either move the marker or drop the pick. Do not silently ignore orphans.
+> If a marker's `kind` doesn't match any natural target page (e.g., a `kind=data-summarization`
+> marker on a search results page that has no record-detail context), flag as `orphan-marker` and
+> surface it in Phase 3 for the user to resolve — either move the marker or drop the pick. Do not
+> silently ignore orphans.
 >
 > **Search summary candidates.** Find any search page/component (filenames matching `Search*`, or
 > components that call `/_api/search/v1.0/query`). Note the file path and whether it currently
@@ -329,24 +342,20 @@ Use the **Explore agent** (via `Task` with `subagent_type: "Explore"`) with thor
 > (e.g., `existing fetch: $select=title,description; no $expand. User qualifier: "with its
 > line items". Scope: scope-extends-beyond-existing-fetch`).
 >
-> **Case preset candidates.** Specifically check for an `incident` (or `adx_case`) table in the
-> manifest and a case/incident detail page in the source (names containing `Case`, `Incident`,
-> `Ticket`). If both exist, mark this as a high-priority recommendation.
->
 > **Existing infrastructure.** Report (a) whether a CSRF helper already exists — grep for
 > `_layout/tokenhtml` and `getCsrfToken` — and where it lives; (b) whether
 > `src/shared/powerPagesApi.ts` exists (from a prior `/integrate-webapi` run); (c) whether
 > `src/services/aiSummaryService.*` already exists from a prior run.
 >
-> **Layer 1/2 status.** For every data-summarization / case-preset target plus every `$expand`
-> target, report a single status: does `Webapi/<table>/enabled` exist, does
-> `Webapi/<table>/fields` exist, and does at least one table permission with `read: true` exist?
-> Report per target as one of: `ready` (all three present), `missing` (any of the three absent).
-> For Search Summary targets, report `n/a (search has no per-table prereqs)`.
+> **Layer 1/2 status.** For every Data Summarization target plus every `$expand` target, report
+> a single status: does `Webapi/<table>/enabled` exist, does `Webapi/<table>/fields` exist, and
+> does at least one table permission with `read: true` exist? Report per target as one of:
+> `ready` (all three present), `missing` (any of the three absent). For Search Summary targets,
+> report `n/a (search has no per-table prereqs)`.
 >
-> **Layer 3 status.** For every data-summarization / case-preset target, report whether
-> `Summarization/Data/Enable` and the specific `Summarization/prompt/<id>` identifier the code
-> will send exist in `.powerpages-site/site-settings/`. For Search Summary targets, report
+> **Layer 3 status.** For every Data Summarization target, report whether `Summarization/Data/Enable`
+> and the specific `Summarization/prompt/<id>` identifier the code will send exist in
+> `.powerpages-site/site-settings/`. For Search Summary targets, report
 > `n/a (search uses the Copilot workspace toggle, not a per-call site setting)` — do not flag
 > them as `missing`, otherwise the skill will spuriously invoke `ai-webapi-settings-architect`
 > for a search-only run."
@@ -356,9 +365,13 @@ From the Explore agent's output, compile the **integration manifest** (the `Sour
 | # | API | Target file | Target kind | Entity Set | `$select` / `$expand` | Source | Layer 1/2 status | Layer 3 status |
 |---|-----|-------------|-------------|-----------|----------------------|--------|------------------|----------------|
 | 1 | Search summary | `src/pages/SearchResults.tsx` | n/a | — | — | marker | n/a (search needs no per-table prereqs) | n/a (search uses workspace toggle, no per-setting toggle) |
-| 2 | Case preset | `src/pages/CaseDetail.tsx` | single-record | `incidents` | `$select=description,title&$expand=incident_adx_portalcomments($select=description)` | marker | missing | missing (`Summarization/prompt/case_summary` not present) |
+| 2 | Data summarization | `src/pages/CaseDetail.tsx` | single-record | `incidents` | `$select=description,title&$expand=incident_adx_portalcomments($select=description)` | marker | missing | missing (`Summarization/prompt/case_summary` not present) |
 | 3 | Data summarization | `src/pages/ProductDetail.tsx` | single-record | `cr4fc_products` | `$select=cr4fc_name,cr4fc_description` | heuristic | missing | missing (`Summarization/Data/Enable` + prompt identifier not present) |
 | 4 | Data summarization | `src/pages/WorkOrderList.tsx` | list | `cr363_workorders` | `$select=cr363_name,cr363_status,cr363_priority&$orderby=createdon desc&$count=true` | heuristic | missing | missing (`Summarization/Data/Enable` + prompt identifier not present; `Summarization/Data/ContentSizeLimit=200000` recommended) |
+
+(Row 2's `$select` / `$expand` / prompt identifier is the Microsoft-shipped support-case
+recipe — it appears here because the user picked it explicitly via `/create-site` (the
+`POWERPAGES:AI-SLOT` marker), not because the skill auto-detected an `incident` table.)
 
 Compute the two delegation decisions directly from the two status columns:
 
@@ -395,13 +408,11 @@ two commit prompts, final deploy)."
 ### The integration question
 
 Use `AskUserQuestion` and **build the option list dynamically** from the Phase 2 manifest — do
-not hardcode "Search summary, Data summarization, and the Case-page preset" when only one or two
-categories actually have candidates. Construct the question text from what was found:
+not hardcode "Search summary and Data summarization" when only one category has candidates.
+Construct the question text from what was found:
 
-- If all three categories have candidates: "I found candidates for Search Summary, Data
-  Summarization, and the Case-page preset. Which should I integrate?"
-- If only two categories: "I found candidates for [category A] and [category B]. Which should I
-  integrate?"
+- If both categories have candidates: "I found candidates for Search Summary and Data
+  Summarization. Which should I integrate?"
 - If only one category with one target: skip "All of them" — just confirm the single target
   ("Wire Search Summary into `<page>`?").
 
@@ -409,17 +420,17 @@ The default option list, with rows present only when the corresponding category 
 
 | Option | When to include |
 |--------|-----------------|
-| All of them (Recommended) | Two or more categories present |
-| Only the Case-page preset | Case preset present AND another category present |
-| Only Search Summary | Search candidates present AND another category present |
+| All of them (Recommended) | Both categories present |
+| Only Search Summary | Search candidates present AND Data Summarization candidates present |
+| Only Data Summarization | Data Summarization candidates present AND Search candidates present |
 | Let me select specific ones | Always (multi-target runs) |
 | None — cancel | Always |
 
 If the user chooses "Let me select specific ones", follow up with a multi-select question listing
 each row of the integration manifest. When a detail-page candidate was flagged in Phase 2 as a
-related-record-discovery target, include it as a dedicated option (in addition to any data/case
-option for the same page) so the user can consciously pick the AI-grounded path rather than a
-hand-rolled OData match — e.g.:
+related-record-discovery target, include it as a dedicated option (in addition to any Data
+Summarization option for the same page) so the user can consciously pick the AI-grounded path
+rather than a hand-rolled OData match — e.g.:
 
 - `Search Summary on CaseDetail.tsx (finds related KB articles via generative AI)`
 - `Search Summary on ProductDetail.tsx (finds related products via generative AI)`
@@ -431,8 +442,8 @@ user sees exactly where the AI surface will appear.
 
 For every confirmed target whose page renders a **collection** of records (filename matches
 `*List*`, `*History*`, `*Results*`, or the target component iterates a server-returned array in
-the UI), ask a follow-up question before moving to Phase 4. Single-record summary targets (case
-detail, product detail, the case-page preset) skip this question.
+the UI), ask a follow-up question before moving to Phase 4. Single-record summary targets (any
+record-detail page, including the support-case detail page) skip this question.
 
 | Question | Header | Options |
 |----------|--------|---------|
@@ -464,7 +475,7 @@ different or no `$filter`):
 
 | Question | Header | Options |
 |----------|--------|---------|
-| Your request mentions `<user qualifier>` — this isn't in the existing record fetch (which selects `<existing $select>`). Which facets should the summary include? | Facets | Include the mentioned facets — `$select=<baseline>,<added columns>`, `$expand=<added expansions with nav-prop casing>` (Recommended), Use the existing fetch's columns only (no additions), Use the canonical `<preset>` if applicable (e.g., case preset for `incident`), Let me write the `$select`/`$expand` |
+| Your request mentions `<user qualifier>` — this isn't in the existing record fetch (which selects `<existing $select>`). Which facets should the summary include? | Facets | Include the mentioned facets — `$select=<baseline>,<added columns>`, `$expand=<added expansions with nav-prop casing>` (Recommended), Use the existing fetch's columns only (no additions), Let me write the `$select`/`$expand` |
 
 Translate the qualifier to concrete columns / expansions using the datamodel manifest — e.g.,
 "include its line items" on `cr363_order` with a related `cr363_orderlineitem` table via a
@@ -549,7 +560,7 @@ a working runtime is obvious from the final message.
 
 Build the sentinel arguments from the Phase 2 manifest:
 
-- `primary=<primary table logical name>` (for data targets, the table whose record is being summarised; for case preset, `incident`)
+- `primary=<primary table logical name>` (the table whose record / collection is being summarised — e.g., `incident`, `cr4fc_product`, `cr363_workorder`)
 - `tables=<primary plus every $expand target, comma-separated>`
 - `expand-targets=<every $expand target, comma-separated; empty for pure data-summary targets with no $expand>`
 - `caller=add-ai-webapi`
@@ -595,11 +606,11 @@ For the first target in the confirmed manifest, invoke the agent at
 `${CLAUDE_PLUGIN_ROOT}/agents/ai-webapi-integration.md` via `Task`. The prompt below is a
 **template** — replace every `[…]` block with the concrete value for the current target before
 invoking. The agent does not interpret square-bracket placeholders; sending the literal text
-`[search | data | case-preset]` will confuse it.
+`[search | data]` will confuse it.
 
 > "Integrate the **<API name>** for the Power Pages SPA site.
 >
-> - APIs to wire: <one of: `search`, `data`, `case-preset`>
+> - APIs to wire: <one of: `search`, `data`>
 > - Target file: <absolute or project-relative path to the page/component to wire>
 > - Target kind: <one of: `single-record`, `list`, `n/a (search)`> — from the Phase 2 manifest.
 >   `list` means use `fetchListSummary` + the collection-endpoint URL form (see agent §2.1);
@@ -609,9 +620,11 @@ invoking. The agent does not interpret square-bracket placeholders; sending the 
 >   targets (always auto on a user action).
 > - Framework: <React | Vue | Angular | Astro>
 > - Project root: <absolute path>
-> - If data/case-preset: table logical name `<logical_name>`, entity set `<entity_set_name>`,
+> - If data: table logical name `<logical_name>`, entity set `<entity_set_name>`,
 >   `$select=<columns>`, `$expand=<NavProp($select=...)>` (omit for search), `InstructionIdentifier`
->   `Summarization/prompt/<identifier>`
+>   `Summarization/prompt/<identifier>`. For the support-case scenario, use the Microsoft-shipped
+>   recipe: `incident` / `incidents` / `$select=description,title` /
+>   `$expand=incident_adx_portalcomments($select=description)` / `Summarization/prompt/case_summary`.
 > - For `list` targets — Scope for the summary call (resolved by the orchestrator from Phase 2 +
 >   Phase 3; the agent uses these values verbatim and does NOT re-derive from the existing fetch):
 >   - `$filter`: `<exact filter value to use on the summary URL, or "none">`
@@ -700,7 +713,7 @@ Skip this phase when both of the following are true:
 
 - Every confirmed target is Search Summary (search has no per-call `Summarization/*` site settings;
   see [ai-api-reference.md](references/ai-api-reference.md#1-search-summary-api)).
-- No Data Summarization or Case preset target was added in Phase 3.
+- No Data Summarization target was added in Phase 3.
 
 For search-only, remind the user to enable **Site search with generative AI (preview)** in the
 site's Copilot workspace after deploy, and proceed to Phase 7.
@@ -717,8 +730,9 @@ architect with a missing folder.
 Invoke the agent at `${CLAUDE_PLUGIN_ROOT}/agents/ai-webapi-settings-architect.md` via `Task`:
 
 > "Analyse this Power Pages SPA site and propose generative-AI summarization site settings.
-> The following AI APIs were integrated in Phase 5: [data / case-preset list with per-target
-> `InstructionIdentifier` values]. Check for existing `Summarization/*` settings. Layer 1
+> The following Data Summarization targets were integrated in Phase 5: [list each target with its
+> entity set + per-target `InstructionIdentifier` value]. Check for existing `Summarization/*`
+> settings. Layer 1
 > (`Webapi/<table>/*`) and Layer 2 (table permissions) were configured in Phase 4 via
 > `/integrate-webapi` in AI-only read mode — verify they are present on disk and cite them as
 > met in your plan's prerequisite table. Propose the AI plan via plan mode, and on approval
@@ -774,11 +788,12 @@ builds.
 For each confirmed target, confirm:
 
 - **Service file**: `src/services/aiSummaryService.ts` (or project-convention equivalent) contains
-  the expected exported function (`fetchSearchSummary`, `fetchDataSummary`, or `fetchCaseSummary`).
+  the expected exported function (`fetchSearchSummary` or `fetchDataSummary`; the agent may also
+  emit a thin wrapper such as `fetchCaseSummary` when the user picked the support-case scenario).
 - **Framework wrapper** (non-Astro): React hook in `src/hooks/`, Vue composable in
   `src/composables/`, or Angular service in `src/app/services/`.
 - **UI wiring**: at least one page/component imports the service or wrapper and calls it.
-- **Shared API client** `src/shared/powerPagesApi.ts` exists when any data/case target was in scope.
+- **Shared API client** `src/shared/powerPagesApi.ts` exists when any Data Summarization target was in scope.
 
 ### 7.2 Header contract grep
 
@@ -815,12 +830,13 @@ wired page; type mismatch between `DataSummaryResponse` and the UI consumer; dup
 | Target file | API | Service fn | Wrapper | UI call site | Headers ✓ | `$select` ✓ |
 |-------------|-----|-----------|---------|--------------|-----------|-------------|
 | `src/pages/SearchResults.tsx` | Search summary | `fetchSearchSummary` | `useSearchSummary` | Yes | Yes | n/a |
-| `src/pages/CaseDetail.tsx` | Case preset | `fetchCaseSummary` | `useCaseSummary` | Yes | Yes | Yes |
+| `src/pages/CaseDetail.tsx` | Data summarization | `fetchDataSummary` (optionally wrapped as `fetchCaseSummary`) | `useCaseSummary` | Yes | Yes | Yes |
 | `src/pages/ProductDetail.tsx` | Data summarization | `fetchDataSummary` | `useProductSummary` | Yes | Yes | Yes |
 
-(Same row order, same example file paths, and the same "Search summary / Case preset / Data
-summarization" labels as the Phase 2 manifest example, so a maintainer reading both tables can
-trace each row top-to-bottom.)
+(Same row order and example file paths as the Phase 2 manifest example, so a maintainer reading
+both tables can trace each row top-to-bottom. Row 2 mirrors the Microsoft-shipped support-case
+recipe — a Data Summarization call configured for `incidents` with the `case_summary` prompt
+identifier.)
 
 **Build status:** Pass / Fail (with details).
 
@@ -864,17 +880,17 @@ new settings and permissions.
 - **Site search with generative AI** (for the search summary): toggle
   **Copilot → Site search (preview) → "Enable Site search with generative AI (preview)"** in the
   Set up workspace.
-- **Test recipe** (matches the Microsoft Learn case-page walkthrough):
-  - **Case preset** — sign in as a user with the assigned web role, go to **My support**, create a
-    new case with a filled-in description, **add at least one comment** (the preset's
-    `$expand=incident_adx_portalcomments($select=description)` returns nothing for an empty
-    comment collection, which trips error `90041005`), then click the chevron on the Copilot
-    summary card. Confirm `/_api/summarization/data/v1.0/incidents(<id>)?...` returns 200 with a
-    non-empty `Summary`.
+- **Test recipe**:
   - **Data summarization** — open a record-detail page for the target table. Click the summary
-    action. Confirm 200 in the network tab and the returned `Summary` renders. Click a
-    recommendation chip and confirm the follow-up request sends `RecommendationConfig` (not
-    `InstructionIdentifier`) and returns a refined summary.
+    action. Confirm `/_api/summarization/data/v1.0/<entitySet>(<id>)?...` returns 200 in the
+    network tab and the returned `Summary` renders. Click a recommendation chip and confirm the
+    follow-up request sends `RecommendationConfig` (not `InstructionIdentifier`) and returns a
+    refined summary. **`90041005` quirk** — when the target's `$expand` collection is empty and
+    the record's selected columns are blank, the endpoint returns `90041005` ("nothing to
+    summarize"). The Microsoft-shipped support-case configuration trips this often: the
+    `$expand=incident_adx_portalcomments` returns an empty array on a freshly created case with
+    no portal comments. Test with a record that has substantive content in every selected /
+    expanded column.
   - **Search summary** — perform a search. Confirm `/_api/search/v1.0/summary` returns 200, the
     summary paragraph renders above the keyword results, the inline `[[N]](url)` markdown is
     rendered as framework-native anchors (not raw markdown text), and `[1]`, `[2]`, ... tokens
@@ -937,7 +953,8 @@ new settings and permissions.
 ### List-summary use case playbook
 
 When the target is a LIST of records (not a single record), the defaults for a single-record
-Copilot card (case preset style) are the wrong defaults. Apply every rule below:
+Copilot card (such as the Microsoft-shipped support-case recipe) are the wrong defaults. Apply
+every rule below:
 
 1. **Use the collection endpoint** — `POST /_api/summarization/data/v1.0/<entitySet>?$select=...` —
    not the account-anchored `accounts(<id>)?$expand=<navprop>` form. Row-level security already

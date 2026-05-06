@@ -38,16 +38,15 @@ Use this framework to recommend the right backend integration approach for a Pow
 
 ### AI Web API (`/add-ai-webapi`)
 
-**What it is:** A specialization of Web API for AI-augmented reads. Three endpoints: **Search Summary** (`/_api/search/v1.0/summary`) produces a grounded AI answer over the site's search index; **Data Summarization** (`/_api/summarization/data/v1.0/<entitySet>(<id>)?$select=...`) produces an AI summary of one record or a collection; the **Case-page Copilot preset** is a pre-built Data Summarization call for the `incident` table.
+**What it is:** A specialization of Web API for AI-augmented reads. Two endpoints: **Search Summary** (`/_api/search/v1.0/summary`) produces a grounded AI answer over the site's search index, and **Data Summarization** (`/_api/summarization/data/v1.0/<entitySet>(<id>)?$select=...`) produces an AI summary of one record or a collection. Microsoft also documents a ready-made Data Summarization configuration for the standard `incident` table (the support-case Copilot summary recipe) — that's an example of Data Summarization, not a separate API.
 
-**How it works:** Same browser-to-portal auth model as Web API — cookie session + CSRF token from `/_layout/tokenhtml`. Data Summarization reads via the portal's `_api` layer, so it respects the same table permissions, column permissions, and Web API field settings as regular Web API. The server adds a generative-AI pass that returns a text summary instead of raw records. Read-only by definition — none of the three endpoints mutate Dataverse.
+**How it works:** Same browser-to-portal auth model as Web API — cookie session + CSRF token from `/_layout/tokenhtml`. Data Summarization reads via the portal's `_api` layer, so it respects the same table permissions, column permissions, and Web API field settings as regular Web API. The server adds a generative-AI pass that returns a text summary instead of raw records. Read-only by definition — neither endpoint mutates Dataverse.
 
 **Best for:**
 - AI summary of a record on its detail page (e.g., "summarize this case including its portal comments")
 - AI summary of a list of records (e.g., "summarize open cases on the dashboard", "trends in this week's orders")
 - Related-record discovery on a detail page (e.g., "suggest KB articles relevant to this case", "similar products")
 - AI-grounded site search with citations (replaces or augments keyword-only search UIs)
-- Canonical Copilot case-page summary (standard pattern for support/incident portals)
 
 **Not suitable when:**
 - The output needs to be deterministic or exact (AI output is probabilistic; use Web API for exact data)
@@ -255,7 +254,7 @@ Many real-world scenarios use multiple approaches together:
 |--------------|-----------------|-----------|
 | "Show data from Dataverse" / "display records" / "CRUD" | Web API | Direct data access, real-time UI binding |
 | "Filter and sort products" / "search contacts" | Web API | Standard OData queries, no server logic needed |
-| "Summarize this case" / "AI summary on the detail page" / "Copilot summary" | AI Web API | Data Summarization on a single record (or the Case-page preset for incidents) |
+| "Summarize this case" / "AI summary on the detail page" / "Copilot summary" | AI Web API | Data Summarization on a single record (the Microsoft-shipped support-case recipe is one option for the standard `incident` table) |
 | "Summarize open cases" / "AI summary of this list" / "highlight trends in these records" | AI Web API | Data Summarization over a collection (list-summary pattern) |
 | "Show relevant KB articles" / "suggest similar cases" / "related products" | AI Web API | Search Summary for related-record discovery — grounded retrieval returns AI-ranked citations from the site's search index |
 | "AI search" / "semantic search" / "search with summary" | AI Web API | Search Summary endpoint returns a grounded AI answer plus citations for a user query |

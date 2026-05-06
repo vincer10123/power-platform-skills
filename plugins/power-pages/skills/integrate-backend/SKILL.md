@@ -136,7 +136,6 @@ Use the decision matrix, intent mapping, and **Secure Action Principle** from th
    - The UI wants an AI summary of a list or collection (e.g., "summarize open orders", "highlight trends in this week's cases")
    - A detail page wants related-record discovery (e.g., "suggest KB articles for this case", "similar products", "similar cases") — Search Summary's grounded retrieval is a better fit than a hand-rolled OData keyword match
    - The site wants AI-grounded search with citations, replacing or augmenting keyword-only search
-   - The site handles incident/case/ticket data and the canonical Copilot case-page preset applies
 
    AI Web API is read-only — the Secure Action Principle does not apply. If an AI item covers a Dataverse table that is also covered by a Web API item, put the AI item in a later phase (it depends on the Web API Layer 1/2 prereqs being in place). Search Summary items have no per-table prereqs and can stand alone.
 
@@ -338,7 +337,7 @@ Group the approved items by their `phase` number from the plan. Each phase is a 
 | Approach | Skill to invoke | What to pass |
 |----------|----------------|--------------|
 | Web API | `/integrate-webapi` | The user's request + tables for this phase + existing patterns |
-| AI Web API | `/add-ai-webapi` | The user's request + target pages/tables for this phase + which of the three APIs to use (search summary / data summarization / case preset) + any trigger preferences (auto-on-mount vs manual button for list summaries). If Web API prereqs for the target table were set up in an earlier phase, mention that so the AI skill skips its Layer 1/2 delegation. |
+| AI Web API | `/add-ai-webapi` | The user's request + target pages/tables for this phase + which of the two APIs to use (Search Summary or Data Summarization) + any trigger preferences (auto-on-mount vs manual button for list summaries). If Web API prereqs for the target table were set up in an earlier phase, mention that so the AI skill skips its Layer 1/2 delegation. |
 | Server Logic | `/add-server-logic` | The user's request + endpoints for this phase + SDK features needed + secrets identified + any matching Dataverse custom actions from Phase 1.3 |
 | Cloud Flow | `/add-cloud-flow` | The user's request + async operations for this phase |
 
@@ -509,17 +508,19 @@ NOTE: The Web API item must NOT include the status field in its Update
       endpoint.
 ```
 
-**Example 9: AI summary on detail page → AI Web API (case-page preset)**
+**Example 9: AI summary on detail page → AI Web API (Data Summarization, support-case recipe)**
 ```
 User: Add an AI-generated summary card to the case detail page that
       includes the comments customers have posted.
 
-Recommendation: AI Web API (Case-page Copilot preset)
-Reason: Power Pages ships a canonical Copilot preset for the incident
-        table — POST to /_api/summarization/data/v1.0/incidents(<id>)
-        with InstructionIdentifier "Summarization/prompt/case_summary"
-        and $expand=incident_adx_portalcomments($select=description).
-        No custom prompt engineering needed.
+Recommendation: AI Web API — Data Summarization
+Reason: Microsoft Learn documents a ready-made Data Summarization
+        configuration for this scenario on the standard incident table —
+        POST to /_api/summarization/data/v1.0/incidents(<id>) with
+        InstructionIdentifier "Summarization/prompt/case_summary" and
+        $expand=incident_adx_portalcomments($select=description). The
+        user can adopt this verbatim or tweak the columns / prompt for
+        their own case-handling UX.
 Skill: /add-ai-webapi
 ```
 
