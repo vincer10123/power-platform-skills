@@ -1,7 +1,7 @@
 ---
 name: add-ai-webapi
 description: >-
-  Integrates Power Pages generative-AI summarization (PREVIEW) into a code site: the Search
+  Integrates Power Pages generative-AI summarization APIs (PREVIEW) into a code site: the Search
   Summary API, the Data Summarization API, and the canonical Case-page Copilot preset. These
   three APIs are in preview — gated by a three-level admin hierarchy (tenant PowerShell,
   Copilot Hub env/site governance, site maker toggle) and subject to change before GA.
@@ -26,7 +26,7 @@ model: opus
 
 Surface the note above to the user during Phase 1 and again in the Phase 8 summary so they don't take a runtime dependency on these APIs for production-critical paths.
 
-Integrate Power Pages generative-AI summarization into a code site. This skill focuses on the AI layer (Layer 3): the summarization service code and the `Summarization/*` site settings. The underlying Web API prerequisites — `Webapi/<table>/enabled`, `Webapi/<table>/fields`, table permissions, and web roles — are **delegated** to `/integrate-webapi` and `/create-webroles` so there is a single source of truth for every layer.
+Integrate Power Pages generative-AI summarization APIs into a code site. This skill focuses on the AI layer (Layer 3): the summarization service code and the `Summarization/*` site settings. The underlying Web API prerequisites — `Webapi/<table>/enabled`, `Webapi/<table>/fields`, table permissions, and web roles — are **delegated** to `/integrate-webapi` and `/create-webroles` so there is a single source of truth for every layer.
 
 ## The three APIs covered
 
@@ -41,7 +41,7 @@ Integrate Power Pages generative-AI summarization into a code site. This skill f
 > workflow; fetch the Microsoft Learn source pages with `mcp__plugin_power-pages_microsoft-learn__microsoft_docs_fetch`
 > if the user asks for the latest.
 
-> **Preview notice**: all three APIs are preview features gated by a **three-level admin
+> **Admin governance hierarchy**: all three APIs are gated by a **three-level admin
 > hierarchy** — tenant PowerShell setting (`enableGenerativeAIFeaturesForSiteUsers`), Copilot Hub
 > environment/site governance, and the site-level maker toggle (for Search Summary: Set up
 > workspace → Copilot → Site search (preview) → Enable Site search with generative AI (preview)).
@@ -53,13 +53,14 @@ Integrate Power Pages generative-AI summarization into a code site. This skill f
 > - **Search Summary** → HTTP **200** with an embedded envelope `{ Code: 400, Message: "Gen AI
 >   Search is disabled." }`. The generated `fetchSearchSummary` detects this and throws
 >   `SearchSummaryApiError`; the UI renders a remediation card.
-> - **Data Summarization / Case preset** → HTTP **400** with `error.code = 90041001`.
+> - **Data Summarization / Case preset** → HTTP **400** with `error.code = 90041001` (admin-level
+>   disabled) or `90041003` (per-site `Summarization/Data/Enable=false`).
 >
 > Full troubleshooting checklist (tenant → environment → site, plus runtime version, Bing
 > dependency, and cross-region data movement) lives in
 > `references/ai-api-reference.md` §1 "Troubleshooting: AI feature appears disabled (admin
-> hierarchy)" — point users there when either disablement shape surfaces. Mention this hierarchy
-> explicitly to the user before Phase 7, and again in the Phase 8 summary.
+> hierarchy)" — point users there when either disablement shape surfaces. Mention this governance
+> hierarchy explicitly to the user before Phase 7, and again in the Phase 8 summary.
 
 > **Built-in search control vs. custom code path**: if the site uses the Microsoft-shipped Power
 > Pages search **control** and only wants AI-summarised search results on that page, they don't
@@ -890,7 +891,8 @@ new settings and permissions.
     appears disabled (admin hierarchy)". A retry will never fix this; an admin or maker has to
     flip the toggle. For Data Summarization the equivalent branch is an HTTP 400 with
     `error.code = 90041001` — same checklist, same resolution path.
-- **Error-code reference**: full table of `90041001`–`90041006` and what each means lives in
+- **Error-code reference**: full table of the five documented `90041xxx` codes — `90041001`,
+  `90041003`, `90041004`, `90041005`, `90041006` — and what each means lives in
   [`references/ai-api-reference.md` §2 Error codes](references/ai-api-reference.md#error-codes-http-400).
   Open it when the user reports a 400. Two runtime-specific notes worth surfacing up front:
   - **403 on a summarization call is always a Layer 1/2 issue** (column casing in

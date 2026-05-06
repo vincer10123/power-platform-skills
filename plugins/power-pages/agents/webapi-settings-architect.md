@@ -430,7 +430,7 @@ After creating all files, return a summary to the calling context:
 
 ## AI-only read mode
 
-When the invoking skill's prompt says **AI-only read integration** (e.g. `/add-ai-webapi` delegating through `/integrate-webapi`), the fields-list rules tighten for every table in scope:
+When the invoking skill's prompt signals **AI-only read mode** (e.g. `/add-ai-webapi` delegating through `/integrate-webapi`), the fields-list rules tighten for every table in scope:
 
 - **Fields list = exactly the primary's `$select` / `$expand` columns.** No more, no less. Extra columns expand the allowlist without any caller using them.
 - **Omit the primary key column.** The Power Pages summarization endpoint carries the record id in the URL path, not in `$select`. Microsoft's shipped case preset ships `Webapi/incident/fields = description,title` with no `incidentid` — match that pattern.

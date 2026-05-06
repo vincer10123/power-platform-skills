@@ -521,7 +521,7 @@ After creating all files, return a summary to the calling context:
 
 ## AI-only read mode
 
-When the invoking skill's prompt says **AI-only read integration** (e.g. `/add-ai-webapi` delegating through `/integrate-webapi`), the permissions proposal hardens to a strict read-only posture for every table in scope:
+When the invoking skill's prompt signals **AI-only read mode** (e.g. `/add-ai-webapi` delegating through `/integrate-webapi`), the permissions proposal hardens to a strict read-only posture for every table in scope:
 
 - **`read: true` only.** Do NOT propose `create`, `write`, or `delete` — the Power Pages AI summarization endpoints are semantically reads (POST carries a body but never mutates), so broader CRUD flags grant unused surface. This overrides the default CRUD convention, including for publisher-prefixed tables where the default is usually full CRUD.
 - **Collection-valued `$expand` targets use Parent scope with `read: true`** via the specific relationship the primary's code `$expand`s on (e.g. `incident_adx_portalcomments` for the case preset). The parent permission still needs `appendTo: true` so the AI endpoint can traverse the navigation property.
