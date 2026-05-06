@@ -23,7 +23,7 @@ model: opus
 
 > **Note**
 >
-> This is a preview feature. Preview features aren't meant for production use and may have restricted functionality. These features are available before an official release so that customers can get early access and provide feedback.
+> AI summarization APIs are a preview feature. Preview features aren't meant for production use and may have restricted functionality. These features are available before an official release so that customers can get early access and provide feedback.
 
 **Surface this note to the user verbatim** during Phase 1 and again in the Phase 8 summary —
 copy the exact `**Note**` block above (including its wording about "available before an official
