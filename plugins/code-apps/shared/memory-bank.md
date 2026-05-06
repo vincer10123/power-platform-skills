@@ -104,7 +104,6 @@ Update after:
 | Environment    | [ENVIRONMENT_NAME]             |
 | Environment ID | [ENVIRONMENT_GUID]             |
 | App URL        | [APP_URL]                      |
-| Version        | v1.0.0                         |
 | Created Date   | [DATE]                         |
 | Status         | [In Progress/Created/Deployed] |
 
@@ -112,7 +111,6 @@ Update after:
 
 ### Design Preferences
 - Theme: [Dark/Light]
-- Version Display: [Enabled/Disabled]
 
 ### Technical Preferences
 - Data Sources: [Dataverse, Azure DevOps, Teams, Excel, etc.]
@@ -120,10 +118,10 @@ Update after:
 ## Completed Steps
 
 ### /create-code-app
-- [x] Prerequisites validated (Node.js, pac CLI)
-- [x] Authenticated and selected environment
+- [x] Prerequisites validated (Node.js)
+- [x] Environment ID confirmed
 - [x] Scaffolded from template
-- [x] Initialized with pac code init
+- [x] Initialized with npx power-apps init
 - [x] Built successfully
 - [x] Deployed to Power Platform
 - App URL: [URL]
