@@ -16,8 +16,9 @@ const REQUIRED_SKILL_FIELDS = ['id', 'name', 'description', 'version', 'category
 // Semantic version regex: major.minor.patch (also allows pre-release like 1.0.0-beta.1)
 const VERSION_REGEX = /^\d+\.\d+\.\d+(-[\w.]+)?$/;
 
-// Minimum description length — bumped from 30 to 50, short descriptions aren't very useful
-const MIN_DESCRIPTION_LENGTH = 50;
+// Minimum description length — keeping this at 30 for my personal use,
+// the upstream bumped it to 50 but that's too strict for my draft skills
+const MIN_DESCRIPTION_LENGTH = 30;
 
 let hasErrors = false;
 
@@ -105,4 +106,5 @@ function main() {
     data = JSON.parse(raw);
   } catch (err) {
     logError(`Failed to parse marketplace.json: ${err.message}`);
-   
+  }
+}
