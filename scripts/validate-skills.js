@@ -16,6 +16,9 @@ const REQUIRED_SKILL_FIELDS = ['id', 'name', 'description', 'version', 'category
 // Semantic version regex: major.minor.patch (also allows pre-release like 1.0.0-beta.1)
 const VERSION_REGEX = /^\d+\.\d+\.\d+(-[\w.]+)?$/;
 
+// Minimum description length — 20 chars feels reasonable for meaningful descriptions
+const MIN_DESCRIPTION_LENGTH = 30;
+
 let hasErrors = false;
 
 function logError(message) {
@@ -46,9 +49,9 @@ function validateSkill(skill, index) {
     logError(`"${label}" has invalid version format "${skill.version}" — expected semver (e.g. 1.0.0)`);
   }
 
-  // Warn if description is too short — bumped threshold to 20 chars, 10 felt too lenient
-  if (skill.description && skill.description.trim().length < 20) {
-    logWarning(`"${label}" has a very short description`);
+  // Warn if description is too short
+  if (skill.description && skill.description.trim().length < MIN_DESCRIPTION_LENGTH) {
+    logWarning(`"${label}" has a very short description (min ${MIN_DESCRIPTION_LENGTH} chars recommended)`);
   }
 
   // Warn if no tags provided
@@ -111,7 +114,7 @@ function main() {
     console.error('\nValidation failed. Please fix the errors above.');
     process.exit(1);
   } else {
-    logInfo('All skills passed validation.');
+    logInfo('All skills validated successfully!');
   }
 }
 
