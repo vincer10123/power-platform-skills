@@ -13,8 +13,8 @@ const MARKETPLACE_PATH = path.join(__dirname, '..', '.claude-plugin', 'marketpla
 // Required fields for each skill entry
 const REQUIRED_SKILL_FIELDS = ['id', 'name', 'description', 'version', 'category'];
 
-// Semantic version regex: major.minor.patch
-const VERSION_REGEX = /^\d+\.\d+\.\d+$/;
+// Semantic version regex: major.minor.patch (also allows pre-release like 1.0.0-beta.1)
+const VERSION_REGEX = /^\d+\.\d+\.\d+(-[\w.]+)?$/;
 
 let hasErrors = false;
 
@@ -46,8 +46,8 @@ function validateSkill(skill, index) {
     logError(`"${label}" has invalid version format "${skill.version}" — expected semver (e.g. 1.0.0)`);
   }
 
-  // Warn if description is too short
-  if (skill.description && skill.description.trim().length < 10) {
+  // Warn if description is too short — bumped threshold to 20 chars, 10 felt too lenient
+  if (skill.description && skill.description.trim().length < 20) {
     logWarning(`"${label}" has a very short description`);
   }
 
