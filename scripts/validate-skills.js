@@ -20,6 +20,9 @@ const VERSION_REGEX = /^\d+\.\d+\.\d+(-[\w.]+)?$/;
 // the upstream bumped it to 50 but that's too strict for my draft skills
 const MIN_DESCRIPTION_LENGTH = 30;
 
+// Allow skipping tag warnings when I'm just prototyping — set SKIP_TAG_WARN=1 to suppress
+const SKIP_TAG_WARNINGS = process.env.SKIP_TAG_WARN === '1';
+
 let hasErrors = false;
 
 function logError(message) {
@@ -56,7 +59,7 @@ function validateSkill(skill, index) {
   }
 
   // Warn if no tags provided
-  if (!skill.tags || !Array.isArray(skill.tags) || skill.tags.length === 0) {
+  if (!SKIP_TAG_WARNINGS && (!skill.tags || !Array.isArray(skill.tags) || skill.tags.length === 0)) {
     logWarning(`"${label}" has no tags defined`);
   }
 }
@@ -105,6 +108,4 @@ function main() {
     const raw = fs.readFileSync(MARKETPLACE_PATH, 'utf-8');
     data = JSON.parse(raw);
   } catch (err) {
-    logError(`Failed to parse marketplace.json: ${err.message}`);
-  }
-}
+    logEr
