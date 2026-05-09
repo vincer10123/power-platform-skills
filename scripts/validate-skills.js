@@ -23,6 +23,10 @@ const MIN_DESCRIPTION_LENGTH = 30;
 // Allow skipping tag warnings when I'm just prototyping — set SKIP_TAG_WARN=1 to suppress
 const SKIP_TAG_WARNINGS = process.env.SKIP_TAG_WARN === '1';
 
+// Exit with a non-zero code on errors by default; set WARN_ONLY=1 to just log and continue
+// (handy when running this as part of a loose local dev loop)
+const WARN_ONLY = process.env.WARN_ONLY === '1';
+
 let hasErrors = false;
 
 function logError(message) {
@@ -100,12 +104,37 @@ function main() {
 
   if (!fs.existsSync(MARKETPLACE_PATH)) {
     logError(`marketplace.json not found at path: ${MARKETPLACE_PATH}`);
-    process.exit(1);
+    process.exit(WARN_ONLY ? 0 : 1);
+  }
+
+  let raw;
+  try {
+    raw = fs.readFileSync(MARKETPLACE_PATH, 'utf8');
+  } catch (err) {
+    logError(`Failed to read marketplace.json: ${err.message}`);
+    process.exit(WARN_ONLY ? 0 : 1);
   }
 
   let data;
   try {
-    const raw = fs.readFileSync(MARKETPLACE_PATH, 'utf-8');
     data = JSON.parse(raw);
   } catch (err) {
-    logEr
+    logError(`Failed to parse marketplace.json: ${err.message}`);
+    process.exit(WARN_ONLY ? 0 : 1);
+  }
+
+  validateMarketplace(data);
+
+  if (hasErrors) {
+    if (WARN_ONLY) {
+      logWarning('Validation finished with errors (WARN_ONLY mode — not exiting with failure)');
+    } else {
+      logError('Validation failed. Fix the errors above before committing.');
+      process.exit(1);
+    }
+  } else {
+    logInfo('All skills validated successfully!');
+  }
+}
+
+main();
